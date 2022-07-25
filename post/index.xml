@@ -6,10 +6,8 @@
     <description>Recent content in Posts on piers&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <copyright>© 2022</copyright><atom:link href="https://piers-n.github.io/post/index.xml" rel="self" type="application/rss+xml" />
-  </channel>
-</rss>
-.xml" rel="self" type="application/rss+xml" />
+    <copyright>© 2022</copyright>
+    <lastBuildDate>Mon, 25 Jul 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://piers-n.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Imaginary Ctf 2022 Pwn Writeup</title>
       <link>https://piers-n.github.io/post/imaginary-ctf-2022-writeup/</link>
@@ -17,6 +15,15 @@
       
       <guid>https://piers-n.github.io/post/imaginary-ctf-2022-writeup/</guid>
       <description>&lt;p&gt;My team purf3ct cleared the pwn section of this ctf, so for the first time, I feel qualifed enough to make a writeup about 2 heap challenges, which introduce some nice heap exploitation techniques&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Markdown Syntax Guide</title>
+      <link>https://piers-n.github.io/post/markdown-syntax/</link>
+      <pubDate>Mon, 11 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://piers-n.github.io/post/markdown-syntax/</guid>
+      <description>&lt;p&gt;This article offers a sample of basic Markdown syntax that can be used in Hugo content files, also it shows whether basic HTML elements are decorated with CSS in a Hugo theme.&lt;/p&gt;</description>
     </item>
     
   </channel>

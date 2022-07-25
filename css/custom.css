@@ -10,12 +10,14 @@ lf {
   font-size: 20px;
 }  
 
-a:link, a:visited {
+
+
+.post-link:link, .post-link:visited {
     color: var(--fg);
     text-decoration: none;
 }
 
-a:hover, a:active {
+.post-link:hover, .post-link:active {
     color: var(--bright-fg);
     text-decoration:underline
 }
