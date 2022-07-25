@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>piers&#39;s blog</title>
+    <link>https://piers-n.github.io/</link>
+    <description>Recent content on piers&#39;s blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <copyright>© 2022</copyright>
+    <lastBuildDate>Mon, 25 Jul 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://piers-n.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Imaginary Ctf 2022 Pwn Writeup</title>
+      <link>https://piers-n.github.io/post/imaginary-ctf-2022-writeup/</link>
+      <pubDate>Mon, 25 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://piers-n.github.io/post/imaginary-ctf-2022-writeup/</guid>
+      <description>&lt;p&gt;My team purf3ct cleared the pwn section of this ctf, so for the first time, I feel qualifed enough to make a writeup about 2 heap challenges, which introduce some nice heap exploitation techniques&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>$ whoami</title>
+      <link>https://piers-n.github.io/about/</link>
+      <pubDate>Mon, 23 Jul 2012 00:00:00 +0000</pubDate>
+      
+      <guid>https://piers-n.github.io/about/</guid>
+      <description> Computer Science undergrad student at University of Engineeering and Technology I have been learning about Binary Exploitation since the beginning of this year, hopefully will get better soon Interested in technology in general You can randomly find me in SEA Valorant, at the bottom rank of course About this blog, currently it consists of writups (and my failure) </description>
+    </item>
+    
+  </channel>
+</rss>

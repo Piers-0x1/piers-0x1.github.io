@@ -1,0 +1,21 @@
+yg {
+  color:  yellowgreen;
+}
+
+red {
+  color:  red;
+}
+
+lf {
+  font-size: 20px;
+}  
+
+a:link, a:visited {
+    color: var(--fg);
+    text-decoration: none;
+}
+
+a:hover, a:active {
+    color: var(--bright-fg);
+    text-decoration:underline
+}
