@@ -9,9 +9,20 @@
     <copyright>© 2022</copyright>
     <lastBuildDate>Mon, 25 Jul 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://piers-n.github.io/tags/pwn/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Lit Ctf 2022 Pwn Writeup - Part 1: House of Cockarocha</title>
+      <link>https://piers-n.github.io/post/lit-ctf-2022-writeup/</link>
+      <pubDate>Mon, 25 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://piers-n.github.io/post/lit-ctf-2022-writeup/</guid>
+      <description>&lt;p&gt;Surprisingly a ctf contest for highschoolers actually has a lot of difficult pwn challenges.&lt;br&gt;
+These challenges have a lot of creative exploiting techniques: House of Husk, House of Muney.&lt;br&gt;
+Therefore, I wanted to make a detailed writeup, starting with the first challenge: House of Cockarocha&lt;/p&gt;</description>
+    </item>
+    
+    <item>
       <title>Imaginary Ctf 2022 Pwn Writeup</title>
       <link>https://piers-n.github.io/post/imaginary-ctf-2022-writeup/</link>
-      <pubDate>Mon, 25 Jul 2022 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 24 Jul 2022 00:00:00 +0000</pubDate>
       
       <guid>https://piers-n.github.io/post/imaginary-ctf-2022-writeup/</guid>
       <description>&lt;p&gt;My team purf3ct cleared the pwn section of this ctf, so for the first time, I feel qualifed enough to make a writeup about 2 heap challenges, which introduce some nice heap exploitation techniques&lt;/p&gt;</description>
