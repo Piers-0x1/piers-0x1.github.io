@@ -1,388 +1,205 @@
-<!DOCTYPE html>
-<html lang="en">
-
-    <head>		<title>Lit Ctf 2022 Pwn Writeup - Part 2: Regex &ndash; piers&#39;s blog</title>
-		<meta name="description" content="My personal blog on the journey of learning how2pwn">
-		<link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-		<link rel="manifest" href="/site.webmanifest">
-		<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
-		<meta name="msapplication-TileColor" content="#da532c">
-		<meta name="theme-color" content="#ffffff">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta charset="utf-8"/>
-
-		
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
-
-		
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.1/css/academicons.min.css" integrity="sha512-b1ASx0WHgVFL5ZQhTgiPWX+68KjS38Jk87jg7pe+qC7q9YkEtFq0z7xCglv7qGIs/68d3mAp+StfC8WKC5SSAg==" crossorigin="anonymous" />
-
-		
-		<link rel="stylesheet" href="https://piers-n.github.io/css/colour/gruvbox-dark.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/colour/dark-mode.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/risotto.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/custom.css">
-</head>
-
-    <body>
-        <div class="page">
-
-            <header class="page__header"><h1 class="page__logo"><a href="https://piers-n.github.io/" class="page__logo-inner">piers&#39;s blog</a></h1>
-<nav class="page__nav main-nav">
-    <ul>
-    
-    
-    <li class="main-nav__item"><a class="nav-main-item" href="/about/" title="">About</a></li>
-    
-    <li class="main-nav__item"><a class="nav-main-item active" href="/post/" title="Posts">Posts</a></li>
-    
-    </ul>
-</nav>
-
-</header>
-
-            <section class="page__body">
-    <header class="content__header">
-        <h1>Lit Ctf 2022 Pwn Writeup - Part 2: Regex</h1>
-    </header>
-    <div class="content__body">
-        <p>A challenge with a new heap exploitation technique: House of Muney. In this challenge, all we need is: a leak, an arbitrary free, and only one malloc (with input) to control RIP.<br>
-And only applicable to binary without FULL RELRO protection.</p>
-<h2 id="lfyg-regex-1-solve-yglf"><lf><yg> Regex (1 solve) </yg></lf></h2>
-<p><img src="/images/regex/checksec.png" alt="regex"><br>
-I didn&rsquo;t manage to solve this challenge sadly :(<br>
-In the same manner of the last challenge, this is also another very restrictive binary with a more subtle bug, I couldn&rsquo;t exploit the bug I found due to it using a very recent exploitation technique.<br>
-It also does not help that this is one of the more obscure technique that you most likely don&rsquo;t know about.</p>
-<p>Before we head into the actual challenge you should read more about <a href="https://maxwelldulin.com/BlogPost?post=6967456768">House of Muney</a><br>
-How we are gonna solve it is the same idea as shown in the blog.</p>
-<h3 id="lfyg-understand-the-binary-and-try-to-look-for-anything-abnormal-yglf"><lf><yg> Understand the binary, and try to look for anything abnormal </yg></lf></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">__cdecl</span> __noreturn <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>envp)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>v3; <span style="color:#75715e">// rdi
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> v4; <span style="color:#75715e">// [rsp+4h] [rbp-Ch]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> v5; <span style="color:#75715e">// [rsp+Bh] [rbp-5h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> v6; <span style="color:#75715e">// [rsp+Ch] [rbp-4h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Welcome to my regex pattern searching program!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;First you need to initialize the pattern.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>  v6 <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> ( v6 <span style="color:#f92672">==</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">8</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">7</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">9</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">5</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">10</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">13</span> )
-</span></span><span style="display:flex;"><span>  {
-</span></span><span style="display:flex;"><span>    v6 <span style="color:#f92672">=</span> input_pattern();
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( v6 )
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Invalid expression, try again.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>      free(preg);
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>  }
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Pattern initialized.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>  divider();
-</span></span><span style="display:flex;"><span>  v3 <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Now you can match strings to your pattern.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>;
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Now you can match strings to your pattern.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>  {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">do</span>
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      match_string(v3, argv);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Would you like to match another string? (y/N)&#34;</span>);
-</span></span><span style="display:flex;"><span>      v5 <span style="color:#f92672">=</span> getchar();
-</span></span><span style="display:flex;"><span>      getchar();
-</span></span><span style="display:flex;"><span>      v3 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>byte_2018;
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#f92672">&amp;</span>byte_2018);
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">while</span> ( v5 <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;y&#39;</span> );
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( v5 <span style="color:#f92672">!=</span> <span style="color:#ae81ff">89</span> )
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      regfree(preg);
-</span></span><span style="display:flex;"><span>      divider();
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;I hope you liked our program!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Before you go, could you leave a review?</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Input your review length:&#34;</span>);
-</span></span><span style="display:flex;"><span>      v4 <span style="color:#f92672">=</span> insz();
-</span></span><span style="display:flex;"><span>      free(s);
-</span></span><span style="display:flex;"><span>      s <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)malloc(v4);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Input your review:&#34;</span>);
-</span></span><span style="display:flex;"><span>      instr(v4);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Thanks!&#34;</span>);
-</span></span><span style="display:flex;"><span>      _exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>  }
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>We first look at 2 input function: insz (input size) and instr (input string)</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">__int64</span> <span style="color:#a6e22e">insz</span>()
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">int</span> v1; <span style="color:#75715e">// [rsp+Ch] [rbp-4h] BYREF
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  __isoc99_scanf(<span style="color:#e6db74">&#34;%d&#34;</span>, <span style="color:#f92672">&amp;</span>v1);
-</span></span><span style="display:flex;"><span>  getchar();
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#f92672">&amp;</span>byte_2018);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ( v1 <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> v1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">196608</span> )
-</span></span><span style="display:flex;"><span>    invalid(<span style="color:#e6db74">&#34;size, out of bounds&#34;</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)v1;
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>We can malloc a very large size here <red> smaller than 0x30000 bytes </red></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">__fastcall</span> <span style="color:#a6e22e">instr</span>(<span style="color:#66d9ef">int</span> a1)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>v1; <span style="color:#75715e">// rbx
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  fgets(s, a1 <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, stdin);
-</span></span><span style="display:flex;"><span>  v1 <span style="color:#f92672">=</span> s;
-</span></span><span style="display:flex;"><span>  v1[strcspn(s, <span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>)] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> puts(<span style="color:#f92672">&amp;</span>byte_2018);
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>Input string uses fgets thus makes it very safe.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">__int64</span> <span style="color:#a6e22e">input_pattern</span>()
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">int</span> v1; <span style="color:#75715e">// [rsp+Ch] [rbp-4h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Input the size of your pattern:&#34;</span>);
-</span></span><span style="display:flex;"><span>  v1 <span style="color:#f92672">=</span> insz();
-</span></span><span style="display:flex;"><span>  free(s);
-</span></span><span style="display:flex;"><span>  s <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)malloc(v1 <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Input your pattern:&#34;</span>);
-</span></span><span style="display:flex;"><span>  instr(v1);
-</span></span><span style="display:flex;"><span>  preg <span style="color:#f92672">=</span> (regex_t <span style="color:#f92672">*</span>)malloc(<span style="color:#ae81ff">0x40uLL</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)regcomp(preg, s, <span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>Throughout the binary, global s is used for every input string operation, and will get freed before malloc again.<br>
-Also there is nothing that looks like vulnerability, it does simple job of input string and regex compile it.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">match_string</span>()
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">int</span> v1; <span style="color:#75715e">// [rsp+4h] [rbp-Ch] BYREF
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> sz; <span style="color:#75715e">// [rsp+8h] [rbp-8h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> i; <span style="color:#75715e">// [rsp+Ch] [rbp-4h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Input the size of the string you&#39;d like to match:&#34;</span>);
-</span></span><span style="display:flex;"><span>  sz <span style="color:#f92672">=</span> insz();
-</span></span><span style="display:flex;"><span>  free(s);
-</span></span><span style="display:flex;"><span>  s <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)malloc(sz <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Input the string you&#39;d like to match:&#34;</span>);
-</span></span><span style="display:flex;"><span>  instr(sz);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Input the number of subexpressions matches you&#39;d like to list:&#34;</span>);
-</span></span><span style="display:flex;"><span>  __isoc99_scanf(<span style="color:#e6db74">&#34;%d&#34;</span>, <span style="color:#f92672">&amp;</span>v1);
-</span></span><span style="display:flex;"><span>  getchar();
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#f92672">&amp;</span>byte_2018);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ( v1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> v1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">4096</span> )
-</span></span><span style="display:flex;"><span>    invalid(<span style="color:#e6db74">&#34;# subexpressions, out of bounds&#34;</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">++</span>v1;
-</span></span><span style="display:flex;"><span>  free(pmatch);
-</span></span><span style="display:flex;"><span>  pmatch <span style="color:#f92672">=</span> (regmatch_t <span style="color:#f92672">*</span>)malloc(<span style="color:#ae81ff">8LL</span> <span style="color:#f92672">*</span> v1);
-</span></span><span style="display:flex;"><span>  regexec(preg, s, v1, pmatch, <span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Matching complete.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Here is the first match interval found:&#34;</span>);
-</span></span><span style="display:flex;"><span>  printf(<span style="color:#e6db74">&#34;[%d, %d]</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)pmatch<span style="color:#f92672">-&gt;</span>rm_so, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)(pmatch<span style="color:#f92672">-&gt;</span>rm_eo <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>));
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#f92672">&amp;</span>byte_2018);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Here are the subexpressions found:&#34;</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> ( i <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; (<span style="color:#66d9ef">int</span>)i <span style="color:#f92672">&lt;</span> v1; <span style="color:#f92672">++</span>i )
-</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;%d: [%d, %d]</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, i, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)pmatch[i].rm_so, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)(pmatch[i].rm_eo <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>));
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> puts(<span style="color:#f92672">&amp;</span>byte_2018);
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>match_string just simply input string to s, and then regexec it with number of subexpressions of our choice.<br>
-The pmatch array is also malloc with enough size, thus no overflow either.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( v5 <span style="color:#f92672">!=</span> <span style="color:#ae81ff">89</span> )
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      regfree(preg);
-</span></span><span style="display:flex;"><span>      divider();
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;I hope you liked our program!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Before you go, could you leave a review?</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Input your review length:&#34;</span>);
-</span></span><span style="display:flex;"><span>      v4 <span style="color:#f92672">=</span> insz();
-</span></span><span style="display:flex;"><span>      free(s);
-</span></span><span style="display:flex;"><span>      s <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)malloc(v4);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Input your review:&#34;</span>);
-</span></span><span style="display:flex;"><span>      instr(v4);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Thanks!&#34;</span>);
-</span></span><span style="display:flex;"><span>      _exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>    }
-</span></span></code></pre></div><p>After we are done with matching string, the binary regfree(), malloc and gives us the last time to input.<br>
-There is a off-by-null vulnerability here, but due to the binary exiting right after it becomes not possible to exploit.<br>
-It happens because, it <red>malloc(v4)</red> but in instr we will <red>fgets(v4+1)</red> instead, so when fgets puts null byte at the end of the string, it will be out of bound.</p>
-<p>After a quick review, that&rsquo;s the only abnormal thing I found.<br>
-There is also a leak inside the match_string function, because the function print out everything inside pmatch array.<br>
-However there is situation when <red>pmatch remains uninitialized after regexec</red> thus it will print out stuffs on the heap, which means <red>we can leak heap address and libc address</red></p>
-<h3 id="lfyg-the-most-abnormal-thing-is-the-long-condition-for-a-glibc-function-yglf"><lf><yg> The most abnormal thing is the long condition for a GLIBC function </yg></lf></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">while</span> ( v6 <span style="color:#f92672">==</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">8</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">7</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">9</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">5</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">10</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">||</span> v6 <span style="color:#f92672">==</span> <span style="color:#ae81ff">13</span> )
-</span></span><span style="display:flex;"><span>  {
-</span></span><span style="display:flex;"><span>    v6 <span style="color:#f92672">=</span> input_pattern();
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( v6 )
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Invalid expression, try again.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-</span></span><span style="display:flex;"><span>      free(preg);
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>  }
-</span></span></code></pre></div><p>GLIBC function often returns 0 for success, so the while condition being that long is always a red-herring for bug.<br>
-With that condition there will be cases when <red>regcomp() fails, preg gets freed, but the binary continues moving forward, leading to an UAF</red></p>
-<h3 id="lfyg-the-rabbit-hole-i-felt-into-digging-too-deep-into-glibc-source-code-for-regexec-yglf"><lf><yg> The rabbit hole I felt into: Digging too deep into GLIBC source code for regexec() </yg></lf></h3>
-<p>The two times we gets to interact with the freed preg is either <red>regexec</red> or <red>regfree</red> at the end.</p>
-<ul>
-<li><red>Regfree</red> will give us the ability to arbitrary free, because regfree will have to free a lot of thing in struct re_pattern_buffer stored at preg, which with UAF we can modify the struct.</li>
-<li><red>Regexec</red> is a more complicated function, that try as I might I could not understand how our fake struct re_pattern_buffer could lead to any meaningful exploitation.</li>
-</ul>
-<p>However due to the binary exiting right after regfree, I could not think of a way to exploit that. In a similar way I solved House of Cockarocha, I tried to find anything useful in regexec.</p>
-<p>And that&rsquo;s how I spent the majority of my time during the CTF. Obviously, I could not find anything useful :d</p>
-<h3 id="lfyg-the-newly-discovered-territory-the-mmap-chunk-yglf"><lf><yg> The newly discovered territory: The mmap chunk </yg></lf></h3>
-<p>We know that we have arbitrary free, but freeing a normal chunk does not help us much. Because we only get to <red>malloc and input once</red> then the binary exits.<br>
-Thus the solution is to free a fake mmap chunk.</p>
-<p>Mmap chunk like the name suggests, is a chunk that was <red>allocated through syscall mmap.</red><br>
-And when that chunk gets free, <red>it gets munmap-ed</red> and that memory section gets deleted out of existence.</p>
-<ul>
-<li>
-<p>So what if we free a fake mmap chunk? We can delete or munmap an entire memory section.</p>
-</li>
-<li>
-<p>So what if we delete the read-only memory section of libc? We can then try to malloc a very large chunk which triggers malloc to mmap a new memory section, which might overlap with the read-only section and then we can write into that section.</p>
-</li>
-<li>
-<p>So what if we can write into read-only memory section of libc? We can then write into <red>.dynsym segment, which means we can control what function gets returned from _dl_run_time_resolve </red></p>
-</li>
-</ul>
-<p>That&rsquo;s why it&rsquo;s only applicable to binary without FULL RELRO protection because everything is resolved beforehand.</p>
-<p>That was the abstract idea of <red>House of Muney</red></p>
-<h3 id="lfyg-the-details-of-the-technique-yglf"><lf><yg> The details of the technique </yg></lf></h3>
-<p>First we need to know what makes a valid mmap chunk so we can free it later on.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
-</span></span><span style="display:flex;"><span><span style="color:#a6e22e">munmap_chunk</span> (mchunkptr p)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  size_t pagesize <span style="color:#f92672">=</span> GLRO (dl_pagesize);
-</span></span><span style="display:flex;"><span>  INTERNAL_SIZE_T size <span style="color:#f92672">=</span> chunksize (p);
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  assert (chunk_is_mmapped (p));
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* Do nothing if the chunk is a faked mmapped chunk in the dumped
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     main arena.  We never free this memory.  */</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (DUMPED_MAIN_ARENA_CHUNK (p))
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  uintptr_t mem <span style="color:#f92672">=</span> (uintptr_t) chunk2mem (p);
-</span></span><span style="display:flex;"><span>  uintptr_t block <span style="color:#f92672">=</span> (uintptr_t) p <span style="color:#f92672">-</span> prev_size (p);
-</span></span><span style="display:flex;"><span>  size_t total_size <span style="color:#f92672">=</span> prev_size (p) <span style="color:#f92672">+</span> size;
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* Unfortunately we have to do the compilers job by hand here.  Normally
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     we would test BLOCK and TOTAL-SIZE separately for compliance with the
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     page size.  But gcc does not recognize the optimization possibility
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     (in the moment at least) so we combine the two values into one before
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     the bit test.  */</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (__glibc_unlikely ((block <span style="color:#f92672">|</span> total_size) <span style="color:#f92672">&amp;</span> (pagesize <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>
-</span></span><span style="display:flex;"><span>      <span style="color:#f92672">||</span> __glibc_unlikely (<span style="color:#f92672">!</span>powerof2 (mem <span style="color:#f92672">&amp;</span> (pagesize <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>))))
-</span></span><span style="display:flex;"><span>    malloc_printerr (<span style="color:#e6db74">&#34;munmap_chunk(): invalid pointer&#34;</span>);
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  atomic_decrement (<span style="color:#f92672">&amp;</span>mp_.n_mmaps);
-</span></span><span style="display:flex;"><span>  atomic_add (<span style="color:#f92672">&amp;</span>mp_.mmapped_mem, <span style="color:#f92672">-</span>total_size);
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* If munmap failed the process virtual memory address space is in a
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     bad shape.  Just leave the block hanging around, the process will
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">     terminate shortly anyway since not much can be done.  */</span>
-</span></span><span style="display:flex;"><span>  __munmap ((<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>) block, total_size);
-</span></span><span style="display:flex;"><span>}  
-</span></span></code></pre></div><p>We have to bypass this check:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (__glibc_unlikely ((block <span style="color:#f92672">|</span> total_size) <span style="color:#f92672">&amp;</span> (pagesize <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>
-</span></span><span style="display:flex;"><span>      <span style="color:#f92672">||</span> __glibc_unlikely (<span style="color:#f92672">!</span>powerof2 (mem <span style="color:#f92672">&amp;</span> (pagesize <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>))))
-</span></span><span style="display:flex;"><span>    malloc_printerr (<span style="color:#e6db74">&#34;munmap_chunk(): invalid pointer&#34;</span>);
-</span></span></code></pre></div><p>pagesize - 1 is often just 0xfff, so to bypass:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>__glibc_unlikely ((block <span style="color:#f92672">|</span> total_size) <span style="color:#f92672">&amp;</span> (pagesize <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>
-</span></span></code></pre></div><p>We just need block and toltal_size both begins with 0x000. Like this:<br>
-<img src="/images/regex/fake.png" alt="fake"><br>
-And also the size of the chunk has to have second bit set (to show that this is a mmap chunk)<br>
-We just have to calculate the size a little bit so part of LIBC gets munmap-ed.</p>
-<p>Now we just need to malloc a large chunk, so we will get a mmap chunk instead. I&rsquo;m gonna reference the blog above:</p>
-<p><yg><em>&ldquo;Very large chunks (mmap chunks) are assigned in a completely different way in order to prevent fragmentation with one-off extremely large chunks. The mmap_threshold is used in order to determine the largest chunk size that should go onto the standard section of the heap. In order to allocate an mmap chunk, the size has to be larger than the mmap_threshold.</em>  </yg></p>
-<p><yg><em>When an mmap chunk is freed, the size of the chunk is checked with the previously largest freed mmap chunk (or the default size), which is known as the mmap_theshold. If the size being freed is larger, then the mmap_threshold is updated. For example, mmap_theshold is 0x100000. If we free a chunk of size 0x200000 then the mmap_theshold gets updated to 0x200000.</em>  </yg></p>
-<p><yg><em>If the size of the chunk being allocated is NOT larger than the mmap_threshold value, then the chunk will be put into the normal heap section instead of getting a special mmap chunk.&rdquo;</em></yg></p>
-<p>To get a mmap chunk we needs to malloc a size larger than mmap_threshold. But if we free a mmap chunk with size larger than mmap_threshold, the mmap_threshold gets updated. So maybe after update, our limited malloc might not be enough for a mmap chunk?<br>
-Luckily this is not a issue, because mmap_threshold has a MAX limit.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (chunk_is_mmapped (p))                       <span style="color:#75715e">/* release mmapped memory. */</span>
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/* See if the dynamic brk/mmap threshold needs adjusting.
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e">	 Dumped fake mmapped chunks do not affect the threshold.  */</span>
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>mp_.no_dyn_threshold
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">&amp;&amp;</span> chunksize_nomask (p) <span style="color:#f92672">&gt;</span> mp_.mmap_threshold
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">&amp;&amp;</span> chunksize_nomask (p) <span style="color:#f92672">&lt;=</span> DEFAULT_MMAP_THRESHOLD_MAX
-</span></span><span style="display:flex;"><span>	  <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span>DUMPED_MAIN_ARENA_CHUNK (p))
-</span></span><span style="display:flex;"><span>        {
-</span></span><span style="display:flex;"><span>          mp_.mmap_threshold <span style="color:#f92672">=</span> chunksize (p);
-</span></span><span style="display:flex;"><span>          mp_.trim_threshold <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> mp_.mmap_threshold;
-</span></span><span style="display:flex;"><span>          LIBC_PROBE (memory_mallopt_free_dyn_thresholds, <span style="color:#ae81ff">2</span>,
-</span></span><span style="display:flex;"><span>                      mp_.mmap_threshold, mp_.trim_threshold);
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>      munmap_chunk (p);
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
-</span></span><span style="display:flex;"><span>    }
-</span></span></code></pre></div><p>If the chunksize is larger than DEFAULT_MMAP_THRESHOLD_MAX then <red>mp_.mmap_threshold</red> is not updated.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>define DEFAULT_MMAP_THRESHOLD_MAX (<span style="color:#ae81ff">4</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1024</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1024</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">long</span>))
-</span></span></code></pre></div><p><red>DEFAULT_MMAP_THRESHOLD_MAX is only 0x2000000 bytes</red> which is smaller than the size we need to munmap LIBC region.<br>
-With some empirical testing, we can find that very often mmap chunk is placed right below LIBC when we malloc with <red>size &gt;= 0x21000</red><br>
-If I remember correctly when the size is larger than some threshold, it will be placed above LIBC and under LD.</p>
-<p>Now we can just write into GLIBC read-only segment, we can just copy libc data completely and only change the part that is important.<br>
-In our case because _exit will gets resolved we only need to change _exit in .dynsym.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
-</span></span><span style="display:flex;"><span>        Elf64_Word      st_name;
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">char</span>   st_info;
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">char</span>   st_other;
-</span></span><span style="display:flex;"><span>        Elf64_Half      st_shndx;
-</span></span><span style="display:flex;"><span>        Elf64_Addr      st_value;
-</span></span><span style="display:flex;"><span>        Elf64_Xword     st_size;
-</span></span><span style="display:flex;"><span>} Elf64_Sym;
-</span></span></code></pre></div><p>st_value is where we change it to one_gadget, the other info will stay the same.</p>
-<h3 id="lfyg-the-full-exploit-plan-yglf"><lf><yg> The full exploit plan </yg></lf></h3>
-<ul>
-<li>We will input an invalid regex pattern, but still pass the while condition check =&gt; leading to UAF.</li>
-<li>We will use UAF, to write into re_pattern_buffer, replace struct re_dfa_t *__REPB_PREFIX(buffer) (it&rsquo;s the first 8 bytes) with address that points to region filled with null. This will make regexec returns immediately and pmatch array is not initialized, thus leaking content on heap. Use this to leak both heap and libc address.</li>
-<li>Use UAF again, to point struct re_dfa_t *__REPB_PREFIX(buffer) to a fake mmap chunk.</li>
-<li>regfree will free our fake mmap chunk, LIBC read-only segment gets munmap-ed</li>
-<li>malloc a chunk with size larger than 0x21000 bytes, it will gets placed under libc. We want to achieve this:<br>
-<img src="/images/regex/mmap.png" alt="mmap"></li>
-<li>Write into libc data, to change Elf64_Sym of _exit.</li>
-</ul>
-<p><a href="https://github.com/LexMACS/LIT-CTF-2022/blob/main/pwn/regex/regex.py">Exploit script</a> from the challenge author because I didn&rsquo;t solve it.</p>
-<h3 id="lfyg-conclusion-yglf"><lf><yg> Conclusion </yg></lf></h3>
-<p>Sadly I could not solve this due to not knowing this recent exploitation technique. But glad that I learnt something new from the ctf.<br>
-There is also this great arcticle <a href="http://tukan.farm/2016/07/27/munmap-madness/">Munmap Madness</a> that I found last month, but I never read it :(<br>
-If I did, I might be able to solve this challenge.</p>
-    </div>
-    <footer class="content__footer"></footer>
-
-            </section>
-
-            <section class="page__aside">
-                <div class="aside__about">
-<div class="aside__about">
-    <img class="about__logo" src="https://piers-n.github.io/images/cat.png" alt="Logo">
-<h1 class="about__title">piers</h1>
-<p class="about__description">My personal blog on the journey of learning how2pwn</p>
-</div>
-
-
-<ul class="aside__social-links">
-    
-    <li>
-        <a href="https://github.com/piers-n" rel="me" aria-label="GitHub" title="GitHub"><i class="fab fa-github" aria-hidden="true"></i></a>&nbsp;
-    </li>
-    
-    <li>
-        <a href="sendhelp2703@gmail.com" rel="me" aria-label="Email" title="Email"><i class="fas fa-envelope" aria-hidden="true"></i></a>&nbsp;
-    </li>
-    
-</ul>
-</div>
-                <hr>
-                <div class="aside__content">
-    <p>Writeup on the pwn challenge: Regex</p>
-    
-        <p>
-            By Piers, 
-            26-07-2022
-        </p>
-    
-
-                </div>
-            </section>
-
-            <footer class="page__footer"><p class="copyright">© 2022</p>
-<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
-</footer>
-
-        </div>
-    </body>
-
-</html>
+<!doctype html><html lang=en><head><title>Lit Ctf 2022 Pwn Writeup - Part 2: Regex &ndash; piers's blog</title><meta name=description content="My personal blog on the journey of learning how2pwn"><link rel=apple-touch-icon sizes=76x76 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/site.webmanifest><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><meta name=msapplication-TileColor content="#da532c"><meta name=theme-color content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1"><meta charset=utf-8><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin=anonymous><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.1/css/academicons.min.css integrity="sha512-b1ASx0WHgVFL5ZQhTgiPWX+68KjS38Jk87jg7pe+qC7q9YkEtFq0z7xCglv7qGIs/68d3mAp+StfC8WKC5SSAg==" crossorigin=anonymous><link rel=stylesheet href=https://piers-n.github.io/css/colour/gruvbox-dark.css><link rel=stylesheet href=https://piers-n.github.io/css/colour/dark-mode.css><link rel=stylesheet href=https://piers-n.github.io/css/risotto.css><link rel=stylesheet href=https://piers-n.github.io/css/custom.css></head><body><div class=page><header class=page__header><h1 class=page__logo><a href=https://piers-n.github.io/ class=page__logo-inner>piers's blog</a></h1><nav class="page__nav main-nav"><ul><li class=main-nav__item><a class=nav-main-item href=/about/ title>About</a></li><li class=main-nav__item><a class="nav-main-item active" href=/post/ title=Posts>Posts</a></li></ul></nav></header><section class=page__body><header class=content__header><h1>Lit Ctf 2022 Pwn Writeup - Part 2: Regex</h1></header><div class=content__body><p>A challenge with a new heap exploitation technique: House of Muney. In this challenge, all we need is: a leak, an arbitrary free, and only one malloc (with input) to control RIP.<br>And only applicable to binary without FULL RELRO protection.</p><h2 id=lfyg-regex-1-solve-yglf><lf><yg>Regex (1 solve)</yg></lf></h2><p><img src=/images/regex/checksec.png alt=regex><br>I didn&rsquo;t manage to solve this challenge sadly :(<br>In the same manner of the last challenge, this is also another very restrictive binary with a more subtle bug, I couldn&rsquo;t exploit the bug I found due to it using a very recent exploitation technique.<br>It also does not help that this is one of the more obscure technique that you most likely don&rsquo;t know about.</p><p>Before we head into the actual challenge you should read more about <a href="https://maxwelldulin.com/BlogPost?post=6967456768">House of Muney</a><br>How we are gonna solve it is the same idea as shown in the blog.</p><h3 id=lfyg-understand-the-binary-and-try-to-look-for-anything-abnormal-yglf><lf><yg>Understand the binary, and try to look for anything abnormal</yg></lf></h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>int</span> <span style=color:#66d9ef>__cdecl</span> __noreturn <span style=color:#a6e22e>main</span>(<span style=color:#66d9ef>int</span> argc, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>argv, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>envp)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>v3; <span style=color:#75715e>// rdi
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>int</span> v4; <span style=color:#75715e>// [rsp+4h] [rbp-Ch]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>char</span> v5; <span style=color:#75715e>// [rsp+Bh] [rbp-5h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>int</span> v6; <span style=color:#75715e>// [rsp+Ch] [rbp-4h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Welcome to my regex pattern searching program!</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;First you need to initialize the pattern.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>  v6 <span style=color:#f92672>=</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>while</span> ( v6 <span style=color:#f92672>==</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>8</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>7</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>9</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>5</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>10</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>2</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>13</span> )
+</span></span><span style=display:flex><span>  {
+</span></span><span style=display:flex><span>    v6 <span style=color:#f92672>=</span> <span style=color:#a6e22e>input_pattern</span>();
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> ( v6 )
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Invalid expression, try again.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>free</span>(preg);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Pattern initialized.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>divider</span>();
+</span></span><span style=display:flex><span>  v3 <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Now you can match strings to your pattern.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Now you can match strings to your pattern.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>  {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>do</span>
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>match_string</span>(v3, argv);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Would you like to match another string? (y/N)&#34;</span>);
+</span></span><span style=display:flex><span>      v5 <span style=color:#f92672>=</span> <span style=color:#a6e22e>getchar</span>();
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>getchar</span>();
+</span></span><span style=display:flex><span>      v3 <span style=color:#f92672>=</span> <span style=color:#f92672>&amp;</span>byte_2018;
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#f92672>&amp;</span>byte_2018);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> ( v5 <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;y&#39;</span> );
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> ( v5 <span style=color:#f92672>!=</span> <span style=color:#ae81ff>89</span> )
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>regfree</span>(preg);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>divider</span>();
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;I hope you liked our program!</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Before you go, could you leave a review?</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input your review length:&#34;</span>);
+</span></span><span style=display:flex><span>      v4 <span style=color:#f92672>=</span> <span style=color:#a6e22e>insz</span>();
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>free</span>(s);
+</span></span><span style=display:flex><span>      s <span style=color:#f92672>=</span> (<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(v4);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input your review:&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>instr</span>(v4);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Thanks!&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>_exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>We first look at 2 input function: insz (input size) and instr (input string)</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>__int64</span> <span style=color:#a6e22e>insz</span>()
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>int</span> v1; <span style=color:#75715e>// [rsp+Ch] [rbp-4h] BYREF
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d&#34;</span>, <span style=color:#f92672>&amp;</span>v1);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>getchar</span>();
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#f92672>&amp;</span>byte_2018);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> ( v1 <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> v1 <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>196608</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>invalid</span>(<span style=color:#e6db74>&#34;size, out of bounds&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>return</span> (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span>)v1;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>We can malloc a very large size here <red>smaller than 0x30000 bytes</red></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>int</span> <span style=color:#66d9ef>__fastcall</span> <span style=color:#a6e22e>instr</span>(<span style=color:#66d9ef>int</span> a1)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>v1; <span style=color:#75715e>// rbx
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>fgets</span>(s, a1 <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>, stdin);
+</span></span><span style=display:flex><span>  v1 <span style=color:#f92672>=</span> s;
+</span></span><span style=display:flex><span>  v1[<span style=color:#a6e22e>strcspn</span>(s, <span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>)] <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>puts</span>(<span style=color:#f92672>&amp;</span>byte_2018);
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>Input string uses fgets thus makes it very safe.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>__int64</span> <span style=color:#a6e22e>input_pattern</span>()
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>int</span> v1; <span style=color:#75715e>// [rsp+Ch] [rbp-4h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input the size of your pattern:&#34;</span>);
+</span></span><span style=display:flex><span>  v1 <span style=color:#f92672>=</span> <span style=color:#a6e22e>insz</span>();
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>free</span>(s);
+</span></span><span style=display:flex><span>  s <span style=color:#f92672>=</span> (<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(v1 <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input your pattern:&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>instr</span>(v1);
+</span></span><span style=display:flex><span>  preg <span style=color:#f92672>=</span> (<span style=color:#66d9ef>regex_t</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(<span style=color:#ae81ff>0x40uLL</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>return</span> (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span>)<span style=color:#a6e22e>regcomp</span>(preg, s, <span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>Throughout the binary, global s is used for every input string operation, and will get freed before malloc again.<br>Also there is nothing that looks like vulnerability, it does simple job of input string and regex compile it.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>int</span> <span style=color:#a6e22e>match_string</span>()
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>int</span> v1; <span style=color:#75715e>// [rsp+4h] [rbp-Ch] BYREF
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>int</span> sz; <span style=color:#75715e>// [rsp+8h] [rbp-8h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span> i; <span style=color:#75715e>// [rsp+Ch] [rbp-4h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input the size of the string you&#39;d like to match:&#34;</span>);
+</span></span><span style=display:flex><span>  sz <span style=color:#f92672>=</span> <span style=color:#a6e22e>insz</span>();
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>free</span>(s);
+</span></span><span style=display:flex><span>  s <span style=color:#f92672>=</span> (<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(sz <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input the string you&#39;d like to match:&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>instr</span>(sz);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input the number of subexpressions matches you&#39;d like to list:&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d&#34;</span>, <span style=color:#f92672>&amp;</span>v1);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>getchar</span>();
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#f92672>&amp;</span>byte_2018);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> ( v1 <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> v1 <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>4096</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>invalid</span>(<span style=color:#e6db74>&#34;# subexpressions, out of bounds&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#f92672>++</span>v1;
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>free</span>(pmatch);
+</span></span><span style=display:flex><span>  pmatch <span style=color:#f92672>=</span> (<span style=color:#66d9ef>regmatch_t</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(<span style=color:#ae81ff>8LL</span> <span style=color:#f92672>*</span> v1);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>regexec</span>(preg, s, v1, pmatch, <span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Matching complete.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Here is the first match interval found:&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>printf</span>(<span style=color:#e6db74>&#34;[%d, %d]</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span>)pmatch<span style=color:#f92672>-&gt;</span>rm_so, (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span>)(pmatch<span style=color:#f92672>-&gt;</span>rm_eo <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>));
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#f92672>&amp;</span>byte_2018);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Here are the subexpressions found:&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>for</span> ( i <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>; (<span style=color:#66d9ef>int</span>)i <span style=color:#f92672>&lt;</span> v1; <span style=color:#f92672>++</span>i )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>printf</span>(<span style=color:#e6db74>&#34;%d: [%d, %d]</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, i, (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span>)pmatch[i].rm_so, (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>int</span>)(pmatch[i].rm_eo <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>));
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>puts</span>(<span style=color:#f92672>&amp;</span>byte_2018);
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>match_string just simply input string to s, and then regexec it with number of subexpressions of our choice.<br>The pmatch array is also malloc with enough size, thus no overflow either.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>if</span> ( v5 <span style=color:#f92672>!=</span> <span style=color:#ae81ff>89</span> )
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>regfree</span>(preg);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>divider</span>();
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;I hope you liked our program!</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Before you go, could you leave a review?</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input your review length:&#34;</span>);
+</span></span><span style=display:flex><span>      v4 <span style=color:#f92672>=</span> <span style=color:#a6e22e>insz</span>();
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>free</span>(s);
+</span></span><span style=display:flex><span>      s <span style=color:#f92672>=</span> (<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(v4);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Input your review:&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>instr</span>(v4);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Thanks!&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>_exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>    }
+</span></span></code></pre></div><p>After we are done with matching string, the binary regfree(), malloc and gives us the last time to input.<br>There is a off-by-null vulnerability here, but due to the binary exiting right after it becomes not possible to exploit.<br>It happens because, it <red>malloc(v4)</red> but in instr we will <red>fgets(v4+1)</red> instead, so when fgets puts null byte at the end of the string, it will be out of bound.</p><p>After a quick review, that&rsquo;s the only abnormal thing I found.<br>There is also a leak inside the match_string function, because the function print out everything inside pmatch array.<br>However there is situation when <red>pmatch remains uninitialized after regexec</red> thus it will print out stuffs on the heap, which means <red>we can leak heap address and libc address</red></p><h3 id=lfyg-the-most-abnormal-thing-is-the-long-condition-for-a-glibc-function-yglf><lf><yg>The most abnormal thing is the long condition for a GLIBC function</yg></lf></h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>while</span> ( v6 <span style=color:#f92672>==</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>8</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>7</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>9</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>5</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>10</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>2</span> <span style=color:#f92672>||</span> v6 <span style=color:#f92672>==</span> <span style=color:#ae81ff>13</span> )
+</span></span><span style=display:flex><span>  {
+</span></span><span style=display:flex><span>    v6 <span style=color:#f92672>=</span> <span style=color:#a6e22e>input_pattern</span>();
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> ( v6 )
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Invalid expression, try again.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>free</span>(preg);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span></code></pre></div><p>GLIBC function often returns 0 for success, so the while condition being that long is always a red-herring for bug.<br>With that condition there will be cases when <red>regcomp() fails, preg gets freed, but the binary continues moving forward, leading to an UAF</red></p><h3 id=lfyg-the-rabbit-hole-i-felt-into-digging-too-deep-into-glibc-source-code-for-regexec-yglf><lf><yg>The rabbit hole I felt into: Digging too deep into GLIBC source code for regexec()</yg></lf></h3><p>The two times we gets to interact with the freed preg is either <red>regexec</red> or <red>regfree</red> at the end.</p><ul><li><red>Regfree</red> will give us the ability to arbitrary free, because regfree will have to free a lot of thing in struct re_pattern_buffer stored at preg, which with UAF we can modify the struct.</li><li><red>Regexec</red> is a more complicated function, that try as I might I could not understand how our fake struct re_pattern_buffer could lead to any meaningful exploitation.</li></ul><p>However due to the binary exiting right after regfree, I could not think of a way to exploit that. In a similar way I solved House of Cockarocha, I tried to find anything useful in regexec.</p><p>And that&rsquo;s how I spent the majority of my time during the CTF. Obviously, I could not find anything useful :d</p><h3 id=lfyg-the-newly-discovered-territory-the-mmap-chunk-yglf><lf><yg>The newly discovered territory: The mmap chunk</yg></lf></h3><p>We know that we have arbitrary free, but freeing a normal chunk does not help us much. Because we only get to <red>malloc and input once</red> then the binary exits.<br>Thus the solution is to free a fake mmap chunk.</p><p>Mmap chunk like the name suggests, is a chunk that was <red>allocated through syscall mmap.</red><br>And when that chunk gets free, <red>it gets munmap-ed</red> and that memory section gets deleted out of existence.</p><ul><li><p>So what if we free a fake mmap chunk? We can delete or munmap an entire memory section.</p></li><li><p>So what if we delete the read-only memory section of libc? We can then try to malloc a very large chunk which triggers malloc to mmap a new memory section, which might overlap with the read-only section and then we can write into that section.</p></li><li><p>So what if we can write into read-only memory section of libc? We can then write into <red>.dynsym segment, which means we can control what function gets returned from _dl_run_time_resolve</red></p></li></ul><p>That&rsquo;s why it&rsquo;s only applicable to binary without FULL RELRO protection because everything is resolved beforehand.</p><p>That was the abstract idea of <red>House of Muney</red></p><h3 id=lfyg-the-details-of-the-technique-yglf><lf><yg>The details of the technique</yg></lf></h3><p>First we need to know what makes a valid mmap chunk so we can free it later on.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>static</span> <span style=color:#66d9ef>void</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>munmap_chunk</span> (mchunkptr p)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>size_t</span> pagesize <span style=color:#f92672>=</span> <span style=color:#a6e22e>GLRO</span> (dl_pagesize);
+</span></span><span style=display:flex><span>  INTERNAL_SIZE_T size <span style=color:#f92672>=</span> <span style=color:#a6e22e>chunksize</span> (p);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>assert</span> (<span style=color:#a6e22e>chunk_is_mmapped</span> (p));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e>/* Do nothing if the chunk is a faked mmapped chunk in the dumped
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     main arena.  We never free this memory.  */</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>DUMPED_MAIN_ARENA_CHUNK</span> (p))
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>uintptr_t</span> mem <span style=color:#f92672>=</span> (<span style=color:#66d9ef>uintptr_t</span>) <span style=color:#a6e22e>chunk2mem</span> (p);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>uintptr_t</span> block <span style=color:#f92672>=</span> (<span style=color:#66d9ef>uintptr_t</span>) p <span style=color:#f92672>-</span> <span style=color:#a6e22e>prev_size</span> (p);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>size_t</span> total_size <span style=color:#f92672>=</span> <span style=color:#a6e22e>prev_size</span> (p) <span style=color:#f92672>+</span> size;
+</span></span><span style=display:flex><span>  <span style=color:#75715e>/* Unfortunately we have to do the compilers job by hand here.  Normally
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     we would test BLOCK and TOTAL-SIZE separately for compliance with the
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     page size.  But gcc does not recognize the optimization possibility
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     (in the moment at least) so we combine the two values into one before
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     the bit test.  */</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>__glibc_unlikely</span> ((block <span style=color:#f92672>|</span> total_size) <span style=color:#f92672>&amp;</span> (pagesize <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>)) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>||</span> <span style=color:#a6e22e>__glibc_unlikely</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>powerof2</span> (mem <span style=color:#f92672>&amp;</span> (pagesize <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>))))
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>malloc_printerr</span> (<span style=color:#e6db74>&#34;munmap_chunk(): invalid pointer&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>atomic_decrement</span> (<span style=color:#f92672>&amp;</span>mp_.n_mmaps);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>atomic_add</span> (<span style=color:#f92672>&amp;</span>mp_.mmapped_mem, <span style=color:#f92672>-</span>total_size);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e>/* If munmap failed the process virtual memory address space is in a
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     bad shape.  Just leave the block hanging around, the process will
+</span></span></span><span style=display:flex><span><span style=color:#75715e>     terminate shortly anyway since not much can be done.  */</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>__munmap</span> ((<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>) block, total_size);
+</span></span><span style=display:flex><span>}  
+</span></span></code></pre></div><p>We have to bypass this check:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>__glibc_unlikely</span> ((block <span style=color:#f92672>|</span> total_size) <span style=color:#f92672>&amp;</span> (pagesize <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>)) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>||</span> <span style=color:#a6e22e>__glibc_unlikely</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>powerof2</span> (mem <span style=color:#f92672>&amp;</span> (pagesize <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>))))
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>malloc_printerr</span> (<span style=color:#e6db74>&#34;munmap_chunk(): invalid pointer&#34;</span>);
+</span></span></code></pre></div><p>pagesize - 1 is often just 0xfff, so to bypass:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a6e22e>__glibc_unlikely</span> ((block <span style=color:#f92672>|</span> total_size) <span style=color:#f92672>&amp;</span> (pagesize <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>)) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>0</span>
+</span></span></code></pre></div><p>We just need block and toltal_size both begins with 0x000. Like this:<br><img src=/images/regex/fake.png alt=fake><br>And also the size of the chunk has to have second bit set (to show that this is a mmap chunk)<br>We just have to calculate the size a little bit so part of LIBC gets munmap-ed.</p><p>Now we just need to malloc a large chunk, so we will get a mmap chunk instead. I&rsquo;m gonna reference the blog above:</p><p><yg><em>&ldquo;Very large chunks (mmap chunks) are assigned in a completely different way in order to prevent fragmentation with one-off extremely large chunks. The mmap_threshold is used in order to determine the largest chunk size that should go onto the standard section of the heap. In order to allocate an mmap chunk, the size has to be larger than the mmap_threshold.</em></yg></p><p><yg><em>When an mmap chunk is freed, the size of the chunk is checked with the previously largest freed mmap chunk (or the default size), which is known as the mmap_theshold. If the size being freed is larger, then the mmap_threshold is updated. For example, mmap_theshold is 0x100000. If we free a chunk of size 0x200000 then the mmap_theshold gets updated to 0x200000.</em></yg></p><p><yg><em>If the size of the chunk being allocated is NOT larger than the mmap_threshold value, then the chunk will be put into the normal heap section instead of getting a special mmap chunk.&rdquo;</em></yg></p><p>To get a mmap chunk we needs to malloc a size larger than mmap_threshold. But if we free a mmap chunk with size larger than mmap_threshold, the mmap_threshold gets updated. So maybe after update, our limited malloc might not be enough for a mmap chunk?<br>Luckily this is not a issue, because mmap_threshold has a MAX limit.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>chunk_is_mmapped</span> (p))                       <span style=color:#75715e>/* release mmapped memory. */</span>
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#75715e>/* See if the dynamic brk/mmap threshold needs adjusting.
+</span></span></span><span style=display:flex><span><span style=color:#75715e>	 Dumped fake mmapped chunks do not affect the threshold.  */</span>
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>mp_.no_dyn_threshold
+</span></span><span style=display:flex><span>          <span style=color:#f92672>&amp;&amp;</span> <span style=color:#a6e22e>chunksize_nomask</span> (p) <span style=color:#f92672>&gt;</span> mp_.mmap_threshold
+</span></span><span style=display:flex><span>          <span style=color:#f92672>&amp;&amp;</span> <span style=color:#a6e22e>chunksize_nomask</span> (p) <span style=color:#f92672>&lt;=</span> DEFAULT_MMAP_THRESHOLD_MAX
+</span></span><span style=display:flex><span>	  <span style=color:#f92672>&amp;&amp;</span> <span style=color:#f92672>!</span><span style=color:#a6e22e>DUMPED_MAIN_ARENA_CHUNK</span> (p))
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          mp_.mmap_threshold <span style=color:#f92672>=</span> <span style=color:#a6e22e>chunksize</span> (p);
+</span></span><span style=display:flex><span>          mp_.trim_threshold <span style=color:#f92672>=</span> <span style=color:#ae81ff>2</span> <span style=color:#f92672>*</span> mp_.mmap_threshold;
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>LIBC_PROBE</span> (memory_mallopt_free_dyn_thresholds, <span style=color:#ae81ff>2</span>,
+</span></span><span style=display:flex><span>                      mp_.mmap_threshold, mp_.trim_threshold);
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>munmap_chunk</span> (p);
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>return</span>;
+</span></span><span style=display:flex><span>    }
+</span></span></code></pre></div><p>If the chunksize is larger than DEFAULT_MMAP_THRESHOLD_MAX then <red>mp_.mmap_threshold</red> is not updated.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>define <span style=color:#a6e22e>DEFAULT_MMAP_THRESHOLD_MAX</span> (<span style=color:#ae81ff>4</span> <span style=color:#f92672>*</span> <span style=color:#ae81ff>1024</span> <span style=color:#f92672>*</span> <span style=color:#ae81ff>1024</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>sizeof</span>(<span style=color:#66d9ef>long</span>))
+</span></span></code></pre></div><p><red>DEFAULT_MMAP_THRESHOLD_MAX is only 0x2000000 bytes</red> which is smaller than the size we need to munmap LIBC region.<br>With some empirical testing, we can find that very often mmap chunk is placed right below LIBC when we malloc with <red>size >= 0x21000</red><br>If I remember correctly when the size is larger than some threshold, it will be placed above LIBC and under LD.</p><p>Now we can just write into GLIBC read-only segment, we can just copy libc data completely and only change the part that is important.<br>In our case because _exit will gets resolved we only need to change _exit in .dynsym.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>typedef</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>        Elf64_Word      st_name;
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>char</span>   st_info;
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>char</span>   st_other;
+</span></span><span style=display:flex><span>        Elf64_Half      st_shndx;
+</span></span><span style=display:flex><span>        Elf64_Addr      st_value;
+</span></span><span style=display:flex><span>        Elf64_Xword     st_size;
+</span></span><span style=display:flex><span>} Elf64_Sym;
+</span></span></code></pre></div><p>st_value is where we change it to one_gadget, the other info will stay the same.</p><h3 id=lfyg-the-full-exploit-plan-yglf><lf><yg>The full exploit plan</yg></lf></h3><ul><li>We will input an invalid regex pattern, but still pass the while condition check => leading to UAF.</li><li>We will use UAF, to write into re_pattern_buffer, replace struct re_dfa_t *__REPB_PREFIX(buffer) (it&rsquo;s the first 8 bytes) with address that points to region filled with null. This will make regexec returns immediately and pmatch array is not initialized, thus leaking content on heap. Use this to leak both heap and libc address.</li><li>Use UAF again, to point struct re_dfa_t *__REPB_PREFIX(buffer) to a fake mmap chunk.</li><li>regfree will free our fake mmap chunk, LIBC read-only segment gets munmap-ed</li><li>malloc a chunk with size larger than 0x21000 bytes, it will gets placed under libc. We want to achieve this:<br><img src=/images/regex/mmap.png alt=mmap></li><li>Write into libc data, to change Elf64_Sym of _exit.</li></ul><p><a href=https://github.com/LexMACS/LIT-CTF-2022/blob/main/pwn/regex/regex.py>Exploit script</a> from the challenge author because I didn&rsquo;t solve it.</p><h3 id=lfyg-conclusion-yglf><lf><yg>Conclusion</yg></lf></h3><p>Sadly I could not solve this due to not knowing this recent exploitation technique. But glad that I learnt something new from the ctf.<br>There is also this great arcticle <a href=http://tukan.farm/2016/07/27/munmap-madness/>Munmap Madness</a> that I found last month, but I never read it :(<br>If I did, I might be able to solve this challenge.</p></div><footer class=content__footer></footer></section><section class=page__aside><div class=aside__about><div class=aside__about><img class=about__logo src=https://piers-n.github.io/images/cat.png alt=Logo><h1 class=about__title>piers</h1><p class=about__description>My personal blog on the journey of learning how2pwn</p></div><ul class=aside__social-links><li><a href=https://github.com/piers-n rel=me aria-label=GitHub title=GitHub><i class="fab fa-github" aria-hidden=true></i></a>&nbsp;</li><li><a href=sendhelp2703@gmail.com rel=me aria-label=Email title=Email><i class="fas fa-envelope" aria-hidden=true></i></a>&nbsp;</li></ul></div><hr><div class=aside__content><p>Writeup on the pwn challenge: Regex</p><p>By Piers,
+26-07-2022</p></div></section><footer class=page__footer><p class=copyright>© 2022</p><p class=advertisement>Powered by <a href=https://gohugo.io/>hugo</a> and <a href=https://github.com/joeroe/risotto>risotto</a>.</p></footer></div></body></html>

